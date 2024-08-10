@@ -1,36 +1,36 @@
 {
-  "name": "express-router-controller-khmer",
-  "version": "1.0.2",
+  "name": "streaming",
+  "version": "1.0.3",
   "license": "xaio-din",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tuydenna/express-router-controller.git"
-  },
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
-  "files": [
-    "build"
-  ],
   "scripts": {
     "start": "concurrently \"npx tsc --watch\" \"nodemon -q ./build/server.js\"",
     "build": "tsc"
   },
   "dependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@prisma/client": "^5.18.0",
     "concurrently": "^8.2.2",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "ejs": "~2.6.1",
     "express": "~4.16.1",
-    "express-router-controller-khmer": "^1.0.2",
+    "express-router-controller-khmer": "^1.1.2",
+    "google-protobuf": "^3.21.4",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
-    "reflect-metadata": "^0.1.13",
-    "typescript": "^5.3.2"
+    "multer": "^1.4.5-lts.1",
+    "protoc-gen-js": "^3.21.2",
+    "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.6",
     "@types/http-errors": "^2.0.4",
     "@types/logger": "^0.0.5",
-    "nodemon": "^3.0.2"
+    "@types/multer": "^1.4.11",
+    "@types/node": "^22.1.0",
+    "nodemon": "^3.0.2",
+    "prisma": "^5.18.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
   }
 }

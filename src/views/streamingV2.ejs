@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css'/>
+</head>
+<body>
+<h1><%= title %></h1>
+<p>Welcome to <%= info %></p>
+<form id="form" action="" method="post" enctype="multipart/form-data">
+    <input id="file_data" name="file" type="file">
+    <button type="submit">Upload</button>
+</form>
+<p id="demo">
+    <body>
+    <video id="stream" width="640" height="480" muted controls autoplay>
+        <source src="/api/streaming" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    </body>
+    <button onclick="playGame()">Play</button>
+</p>
+
+<script type="text/javascript">
+    document.getElementById("form").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const file = document.getElementById("file_data").files[0];
+        console.log(file);
+        const fileHeader = {
+           "File-Extension":  getFileExt(file),
+           "File-Name": getFileName(file),
+            "File-Size": file.size,
+            "Content-Length": file.size
+        }
+        const respond = await fetch('/api/upload/stream', {
+            method: "POST",
+            headers: {
+                'Accept': 'application/json, application/xml, text/plain, text/html, multipart/form-data, *.*',
+                "Content-Type": "application/octet-stream; charset=utf-8",
+                ...fileHeader
+            },
+            body: file
+        })
+        if (respond.ok){
+            alert("Upload success!");
+        }
+    });
+
+    async function get() {
+        const videoTag = document.getElementById("stream");
+        const myMediaSource = new MediaSource();
+        videoTag.src = URL.createObjectURL(myMediaSource)
+        const mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+
+        myMediaSource.addEventListener("sourceclose", function (a) {
+            console.log("myMediaSource", "sourceclose");
+        })
+
+        myMediaSource.addEventListener("sourceopen", function (a) {
+
+            console.log("myMediaSource", "sourceopen");
+
+            if (myMediaSource.readyState === "open") {
+                const VDOBuffer = myMediaSource.addSourceBuffer(mimeType);
+
+                fetch("/api/streaming", {headers: {"range": "0"}}).then(res => res.arrayBuffer()).then(data => {
+                    console.log(data);
+                    console.log(VDOBuffer.buffered);
+                    VDOBuffer.appendBuffer(data);
+                })
+
+                VDOBuffer.addEventListener("updateend", () => {
+                    console.log("VDOBuffer", "updateend");
+                });
+
+                VDOBuffer.addEventListener("update", () => {
+                    console.log("VDOBuffer", "update");
+                });
+
+                VDOBuffer.addEventListener("error", (e) => {
+                    console.log("VDOBuffer", "error", e);
+                });
+            }
+        })
+    }
+
+    function getFileExt(file) {
+        try {
+            let fileExt = file.name.split(".");
+            fileExt = fileExt[fileExt.length-1];
+            return fileExt;
+        } catch (e) {
+            throw ("File not valid!")
+        }
+    }
+
+    function getFileName(file) {
+        try {
+            let fileExt = file.name.split(".");
+            fileExt.pop();
+            return encodeURI(fileExt.toString());
+        } catch (e) {
+            throw ("File not valid!")
+        }
+    }
+</script>
+</body>
+</html>

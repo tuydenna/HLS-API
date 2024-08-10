@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <p>Welcome to <%= info %></p>
+    <p id="demo">
+      <body>
+      <video id="stream" width="640" height="480" muted controls autoplay>
+        <source src="" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      </body>
+      <button id="load">Play</button>
+    </p>
+
+    <script type="text/javascript">
+         const video = document.querySelector("video");
+
+         const assetURL = "en-vdo.mp4";
+         // Need to be specific for Blink regarding codecs
+         const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+
+         function loadVideo() {
+           if (MediaSource.isTypeSupported(mimeCodec)) {
+             const mediaSource = new MediaSource();
+             console.log(mediaSource.readyState); // closed
+             video.src = URL.createObjectURL(mediaSource);
+             mediaSource.addEventListener("sourceopen", sourceOpen.bind(mediaSource));
+           } else {
+             console.error("Unsupported MIME type or codec: ", mimeCodec);
+           }
+         }
+
+         async function sourceOpen() {
+           console.log("mediaSource", this.readyState); // open
+           const mediaSource = this;
+           const fetchBuffer = mediaSource.addSourceBuffer(mimeCodec);
+           const response = await fetch(assetURL);
+           const buffer = await response.arrayBuffer();
+           fetchBuffer.addEventListener("updateend", () => {
+             console.log("mediaSource", this.readyState); // open
+             //mediaSource.endOfStream();
+             video.play();
+             console.log(mediaSource.readyState); // ended
+           });
+           console.log(fetchBuffer.buffered);
+           fetchBuffer.appendBuffer(buffer);
+          fetchBuffer.onerror = function (e) {
+            console.log(e);
+          }
+         }
+
+         const load = document.querySelector("#load");
+         load.addEventListener("click", loadVideo);
+    </script>
+  </body>
+</html>
