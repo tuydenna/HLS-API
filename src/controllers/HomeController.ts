@@ -11,6 +11,7 @@ export default class HomeController {
 				video: true
 			}
 		})
+		console.log(posts);
 		res.render("index", {title: "YOUTUBE", info: "Crazy Tool", data: posts});
 	}
 	

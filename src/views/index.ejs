@@ -88,15 +88,14 @@
     <!-- Videos Section -->
     <div class="videos">
         <h1>Recommended</h1>
-
         <div class="videos__container">
             <!-- Single Video starts -->
 
             <% for(var i=0; i<data.length; i++) {%>
                 <div class="video">
                     <div class="video__thumbnail">
-                        <a href="/watch-videos/<%= data[0].id %>">
-                            <img src="<%= data[0].thumbnail %>" alt="<%= data[0].title %>" />
+                        <a href="/watch-videos/<%= data[i].id %>">
+                            <img src="<%= data[i].thumbnail %>" alt="<%= data[i].title %>" />
                         </a>
                     </div>
                     <div class="video__details">
@@ -114,7 +113,7 @@
                 </div>
             <% } %>
             <!-- Single Video Ends -->
-
+z
             <!-- Single Video starts -->
             <div class="video">
                 <div class="video__thumbnail">
