@@ -6,10 +6,17 @@ body {
   margin: 0;
 }
 
+.line-clamp {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .video-container {
   position: relative;
   width: 100%;
-  max-width: 1000px;
+  /*max-width: 1000px;*/
   display: flex;
   justify-content: center;
   margin-inline: auto;

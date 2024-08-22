@@ -9,6 +9,7 @@ import fs from "fs";
 import {storage_path, video_path} from "../constant/path";
 import db from "../config/database/db";
 import {faker} from "@faker-js/faker";
+import {User} from "@prisma/client";
 
 
 
@@ -50,25 +51,40 @@ export default class UploadController {
 	
 	@Post('/api/upload/content')
 	async uploadContent(req, res: Response): any {
-		StorageEngine.uploadThumbnail(req, res, async function (err) {
-			if (err instanceof multer.MulterError) {
-				res.status(500).send({message: err});
-			} else if (err) {
-				res.status(500).send({message: err});
-			}
-			const data = req.body;
-			const post = await db.post.create({
-				data: {
-					title: data.title,
-					authorId: "66b451c5de117af4a221d512",
-					description: data.description,
-					slug: faker.commerce.productName(),
-					thumbnail: req.file.path,
-					videoId: data.videoId
+		try {
+			StorageEngine.uploadThumbnail(req, res, async function (err) {
+				if (err instanceof multer.MulterError) {
+					res.status(500).send({message: err});
+				} else if (err) {
+					res.status(500).send({message: err});
 				}
+				const data = req.body;
+				const auth: User = await db.user.create({
+					data: {
+						name: faker.person.fullName(),
+						email: faker.internet.email(),
+						address: {
+							zip: faker.location.zipCode(),
+							street: faker.location.street(),
+							city: faker.location.city(),
+							state: faker.location.state()
+						}}
+				}) as User;
+				const post = await db.post.create({
+					data: {
+						title: data.title,
+						description: data.description,
+						authorId: auth.id,
+						slug: faker.commerce.productName(),
+						thumbnail: req.file.path,
+						videoId: data.videoId
+					}
+				})
+				res.send({data: post})
 			})
-			res.send({data: post})
-		})
+		} catch (e) {
+			return Error(e)
+		}
 	}
 	
 	private getFilePath(req: Request) {
