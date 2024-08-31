@@ -1,151 +1,334 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <link rel="stylesheet" href="/media_player/styles.css">
-  <script src="/media_player/script.js" defer></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+   <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">-->
+    <link rel="stylesheet" href="/media_player/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/media_player/script.js" defer></script>
+    <style>
+        .post-hover:hover {
+            cursor: pointer;
+            background: #dcdcdc33;
+        }
+    </style>
 </head>
 <body>
-  <div class="row">
+<div class="flex p-5">
+    <div class="flex-none w-2/3">
+        <div class="video-container paused m-0 mb-3" data-volume-level="high">
+            <img class="thumbnail-img">
+            <div class="video-controls-container">
+                <div class="timeline-container">
+                    <div class="timeline">
+                        <img class="preview-img">
+                        <div class="thumb-indicator"></div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="play-pause-btn">
+                        <svg class="play-icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                        </svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z"/>
+                        </svg>
+                    </button>
+                    <div class="volume-container">
+                        <button class="mute-btn">
+                            <svg class="volume-high-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor"
+                                      d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+                            </svg>
+                            <svg class="volume-low-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor"
+                                      d="M5,9V15H9L14,20V4L9,9M18.5,12C18.5,10.23 17.5,8.71 16,7.97V16C17.5,15.29 18.5,13.76 18.5,12Z"/>
+                            </svg>
+                            <svg class="volume-muted-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor"
+                                      d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z"/>
+                            </svg>
+                        </button>
+                        <input class="volume-slider" type="range" min="0" max="1" step="any" value="1">
+                    </div>
+                    <div class="duration-container">
+                        <div class="current-time">0:00</div>
+                        /
+                        <div class="total-time"></div>
+                    </div>
+                    <button class="captions-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"/>
+                        </svg>
+                    </button>
+                    <button class="speed-btn wide-btn">
+                        1x
+                    </button>
+                    <button class="mini-player-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/>
+                        </svg>
+                    </button>
+                    <button class="theater-btn">
+                        <svg class="tall" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z"/>
+                        </svg>
+                        <svg class="wide" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M19 7H5c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 8H5V9h14v6z"/>
+                        </svg>
+                    </button>
+                    <button class="full-screen-btn">
+                        <svg class="open" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
+                        <svg class="close" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <video src="/api/streaming/videos/<%= encodeURIComponent(data.video.path) %>" autoplay="true"
+                   muted="muted">
+                <track kind="captions" srclang="en" src="/media_player/assets/subtitles.vtt">
+            </video>
+        </div>
+        <section>
+            <p class="text-lg font-bold text-xl"><%= data.title %></p>
+        </section>
+
+        <section>
+            <div class="flex mt-3">
+                <div class="flex justify-content-start">
+                    <div class="avatar">
+                        <div class="w-24 rounded-full">
+                            <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                        </div>
+                    </div>
+                    <div class="flex-col ml-2 self-center">
+                        <div>
+                            <h5 class="mb-0"><%= data.author.name %></h5>
+                        </div>
+                        <div>
+                            <p>5 subscribers</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex grow justify-end self-center" style="align-self: center">
+                    <!--<button type="button" id="btn-like-post" onclick="increaseLike('<%= data.id %>')" class="active btn btn-sm btn-outline-primary" data-bs-toggle="button">
+                        Likes <span class="badge text-bg-success" id="like-post"><%= data.likes %></span>
+                    </button>-->
+                    <div class="stats shadow">
+                        <div class="stat">
+                            <div class="stat-figure text-primary">
+                                <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        class="inline-block h-8 w-8 stroke-current">
+                                    <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="stat-title">Likes</div>
+                            <div class="stat-value text-primary">25.6K</div>
+                        </div>
+
+                        <div class="stat">
+                            <div class="stat-figure text-secondary">
+                                <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        class="inline-block h-8 w-8 stroke-current">
+                                    <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="stat-title">Views</div>
+                            <div class="stat-value text-secondary">2.6M</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section title="description"  class="mt-5">
+            <div tabindex="0" class="collapse bg-base-200">
+                <div class="collapse-title text-xl font-medium">Focus me to see content</div>
+                <div class="collapse-content">
+                    <p> <%= data.description %></p>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div class="grow pl-8">
+        <%- include('left-layout', {allPosts: allPosts}); %>
+    </div>
+</div>
+<!--<div class="row">
     <div class="col-sm-8 p-5">
-
-      <div class="video-container paused m-0 mb-3" data-volume-level="high">
-        <img class="thumbnail-img">
-        <div class="video-controls-container">
-          <div class="timeline-container">
-            <div class="timeline">
-              <img class="preview-img">
-              <div class="thumb-indicator"></div>
+        <div class="video-container paused m-0 mb-3" data-volume-level="high">
+            <img class="thumbnail-img">
+            <div class="video-controls-container">
+                <div class="timeline-container">
+                    <div class="timeline">
+                        <img class="preview-img">
+                        <div class="thumb-indicator"></div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="play-pause-btn">
+                        <svg class="play-icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                        </svg>
+                        <svg class="pause-icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z"/>
+                        </svg>
+                    </button>
+                    <div class="volume-container">
+                        <button class="mute-btn">
+                            <svg class="volume-high-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor"
+                                      d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+                            </svg>
+                            <svg class="volume-low-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor"
+                                      d="M5,9V15H9L14,20V4L9,9M18.5,12C18.5,10.23 17.5,8.71 16,7.97V16C17.5,15.29 18.5,13.76 18.5,12Z"/>
+                            </svg>
+                            <svg class="volume-muted-icon" viewBox="0 0 24 24">
+                                <path fill="currentColor"
+                                      d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z"/>
+                            </svg>
+                        </button>
+                        <input class="volume-slider" type="range" min="0" max="1" step="any" value="1">
+                    </div>
+                    <div class="duration-container">
+                        <div class="current-time">0:00</div>
+                        /
+                        <div class="total-time"></div>
+                    </div>
+                    <button class="captions-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z"/>
+                        </svg>
+                    </button>
+                    <button class="speed-btn wide-btn">
+                        1x
+                    </button>
+                    <button class="mini-player-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/>
+                        </svg>
+                    </button>
+                    <button class="theater-btn">
+                        <svg class="tall" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z"/>
+                        </svg>
+                        <svg class="wide" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M19 7H5c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 8H5V9h14v6z"/>
+                        </svg>
+                    </button>
+                    <button class="full-screen-btn">
+                        <svg class="open" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
+                        <svg class="close" viewBox="0 0 24 24">
+                            <path fill="currentColor"
+                                  d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
-          </div>
-          <div class="controls">
-            <button class="play-pause-btn">
-              <svg class="play-icon" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z" />
-              </svg>
-              <svg class="pause-icon" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z" />
-              </svg>
-            </button>
-            <div class="volume-container">
-              <button class="mute-btn">
-                <svg class="volume-high-icon" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z" />
-                </svg>
-                <svg class="volume-low-icon" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M5,9V15H9L14,20V4L9,9M18.5,12C18.5,10.23 17.5,8.71 16,7.97V16C17.5,15.29 18.5,13.76 18.5,12Z" />
-                </svg>
-                <svg class="volume-muted-icon" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z" />
-                </svg>
-              </button>
-              <input class="volume-slider" type="range" min="0" max="1" step="any" value="1">
-            </div>
-            <div class="duration-container">
-              <div class="current-time">0:00</div>
-              /
-              <div class="total-time"></div>
-            </div>
-            <button class="captions-btn">
-              <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M18,11H16.5V10.5H14.5V13.5H16.5V13H18V14A1,1 0 0,1 17,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H17A1,1 0 0,1 18,10M11,11H9.5V10.5H7.5V13.5H9.5V13H11V14A1,1 0 0,1 10,15H7A1,1 0 0,1 6,14V10A1,1 0 0,1 7,9H10A1,1 0 0,1 11,10M19,4H5C3.89,4 3,4.89 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6C21,4.89 20.1,4 19,4Z" />
-              </svg>
-            </button>
-            <button class="speed-btn wide-btn">
-              1x
-            </button>
-            <button class="mini-player-btn">
-              <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/>
-              </svg>
-            </button>
-            <button class="theater-btn">
-              <svg class="tall" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z"/>
-              </svg>
-              <svg class="wide" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19 7H5c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 8H5V9h14v6z"/>
-              </svg>
-            </button>
-            <button class="full-screen-btn">
-              <svg class="open" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-              </svg>
-              <svg class="close" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-              </svg>
-            </button>
-          </div>
+            <video src="/api/streaming/videos/<%= encodeURIComponent(data.video.path) %>" autoplay="true"
+                   muted="muted">
+                <track kind="captions" srclang="en" src="/media_player/assets/subtitles.vtt">
+            </video>
         </div>
-        <video src="/api/streaming/videos/<%= encodeURIComponent(data.video.path) %>" autoplay="true"
-               muted="muted">
-          <track kind="captions" srclang="en" src="/media_player/assets/subtitles.vtt">
-        </video>
-      </div>
 
-      <section>
-        <h5>Suly Pheng X Pich Solikah - សិប្បនិម្មិត - Open Wound [MV]</h5>
-      </section>
+        <section>
+            <h5><%= data.title %></h5>
+        </section>
 
-      <section>
-        <div class="row mt-3">
-          <div class="col-sm-6 d-flex justify-content-start">
-            <div class="avatar me-2" style="width: 50px">
-              <image  src="https://cdn-icons-png.freepik.com/512/4436/4436481.png" width="50"></image>
+        <section>
+            <div class="row mt-3">
+                <div class="col-sm-6 d-flex justify-content-start">
+                    <div class="avatar me-2" style="width: 50px">
+                        <image src="https://cdn-icons-png.freepik.com/512/4436/4436481.png" width="50"></image>
+                    </div>
+                    <div class="row d-flex">
+                        <div>
+                            <h5 class="mb-0"><%= data.author.name %></h5>
+                        </div>
+                        <div>
+                            <p>5 subscribers</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6  d-flex justify-content-end self-center" style="align-self: center">
+                    <button type="button" id="btn-like-post" onclick="increaseLike('<%= data.id %>')" class="active btn btn-sm btn-outline-primary" data-bs-toggle="button">
+                        Likes <span class="badge text-bg-success" id="like-post"><%= data.likes %></span>
+                    </button>
+                </div>
             </div>
-            <div class="row d-flex">
-              <div>
-                <h5 class="mb-0">Tv 5</h5>
-              </div>
-              <div>
-                <p>5 subscribers</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6  d-flex justify-content-end self-center" style="align-self: center">
-            <button type="button" class="active btn btn-sm btn-outline-primary" data-bs-toggle="button">
-              Likes <span class="badge text-bg-success">4</span>
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section title="description">
-        <div class="alert alert-light" role="alert" style="white-space: pre">
-          28,782 views  Aug 18, 2024
-          សំឡេងម្យ៉ាង អាចបន្តទៅមុខបាន!
-          សំ ចន្ថា | ស្នេហ៍ឯកា
-          កម្មវិធីប្រឡងចម្រៀងលំដាប់ថ្នាក់ពិភពលោក Cambodian Idol រដូវកាលទី 5 វគ្គ Judge Audition រៀងរាល់ថ្ងៃអាទិត្យ ម៉ោង 8:00 យប់
-          នៅលើកញ្ចក់ទូរទស្សន៍ ហង្សមាស HDTV
-          នាំមកជូនផ្តាច់មុខដោយ ៖
-          - ស្រាបៀគ្រុឌ : ពេលវេលាល្អ ពេលវេលាជាមួយគ្រុឌ
-          - ភេសជ្ជៈ ប៉ូវកម្លាំងគ្រុឌ , ទទួលយកថាមពលជាមួយគ្រុឌ
-          - ភេសជ្ជៈកីឡា វីអាកទីវ បំពេញជាតិទឹកបានល្អ និងលឿនជាងទឹកធម្មតា
-          --------------------
-          Subscribe for more exclusive performances from the show; http://bit.ly/CAMBODIANIDOL_SUB
-        </div>
-      </section>
+        <section title="description">
+            <div class="alert alert-light" role="alert" style="white-space: pre">
+                <%= data.description %>
+            </div>
+        </section>
     </div>
-
-    <div class="col-sm-4 pe-5 pt-5">
-      <div class="d-flex">
-         <div class="rounded">
-           <img width="300" height="150" class="rounded" src="data:image/jpeg;base64,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">
-         </div>
-         <div class="ms-3 max-width: 150px;">
-           <p class="fs-5 line-clamp">ប៉ែន ច័ន្ទម៉ារីណែត | If It is You | Judge Audition - Cambodian</p>
-           <div class="fs-6 text-truncate">Channel-1</div>
-           <div class="fs-6 text-truncate">33k views</div>
-         </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
-</body>
-</html>
+    <%- include('left-layout', {allPosts: allPosts}); %>
+</div>-->
+<script type="text/javascript">
+    async function increaseLike(id) {
+        const active = getElById("btn-like-post").getAttribute("aria-pressed");
+        if (active === 'true') {
+            const res = await fetch('/api/posts/' + id + '/increase-likes', {
+                method: "PUT"
+            });
+            const data = await  res.json();
+            if (res.ok) {
+                getElById("like-post").innerText = data.likes;
+            } else {
+                alert("Likes Failed!");
+            }
+        } else {
+            const res = await fetch('/api/posts/' + id + '/decrease-likes', {
+                method: "PUT"
+            });
+            const data = await  res.json();
+            if (res.ok) {
+                getElById("like-post").innerText = data.likes;
+            } else {
+                alert("Likes Failed!");
+            }
+        }
+    }
+    function watchVideo(postId) {
+        window.location = "/watch-videos/"+postId;
+    }
+</script>
+<%- include('../layouts/footer'); %>

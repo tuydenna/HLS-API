@@ -59,6 +59,7 @@ export default class UploadController {
 					res.status(500).send({message: err});
 				}
 				const data = req.body;
+				console.log(req.file);
 				const auth: User = await db.user.create({
 					data: {
 						name: faker.person.fullName(),
@@ -76,7 +77,7 @@ export default class UploadController {
 						description: data.description,
 						authorId: auth.id,
 						slug: faker.commerce.productName(),
-						thumbnail: req.file.path,
+						thumbnail: "/thumbnail/"+req.file.filename,
 						videoId: data.videoId
 					}
 				})

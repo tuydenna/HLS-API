@@ -1,0 +1,29 @@
+<script type="text/javascript">
+    function getElById(id) {
+        return window.document.getElementById(id);
+    }
+
+    function rmClass(id, rmClass) {
+        return window.document.getElementById(id).classList.remove(rmClass);
+    }
+
+    function addClass(id, addClass) {
+        return window.document.getElementById(id).classList.add(addClass);
+    }
+
+    function alterMSG(id, message, typeAlert="success") {
+        const alertPlaceholder = getElById(id);
+        const wrapper = document.createElement('div')
+        wrapper.innerHTML = [
+            `<div class="alert alert-${typeAlert} alert-dismissible" role="alert">`,
+            `   <div>${message}</div>`,
+            '</div>'
+        ].join('')
+        alertPlaceholder.append(wrapper);
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+</body>
+</html>
