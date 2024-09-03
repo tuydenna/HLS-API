@@ -27,16 +27,37 @@ model Post {
   author User @relation(fields: [authorId], references: [id])
   video  File @relation(fields: [videoId], references: [id])
 
-  comments Comment[]
+  comments  Comment[]
+  userPosts UserPost[]
+  likePosts LikePost[]
+}
+
+model UserPost {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  postId String
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id])
 }
 
 model User {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  email   String   @unique
-  name    String?
-  avatar  String?
-  address Address?
-  posts   Post[]
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  email     String     @unique
+  name      String?
+  avatar    String?
+  address   Address?
+  userPosts UserPost[]
+  posts     Post[]
+  likePosts LikePost[]
+}
+
+model LikePost {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  postId   String
+  userId   String
+  like     Boolean @default(false)
+  userLike User    @relation(fields: [userId], references: [id])
+  postLike Post    @relation(fields: [postId], references: [id])
 }
 
 model File {

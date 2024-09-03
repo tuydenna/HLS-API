@@ -9,12 +9,12 @@ export default class PostController {
 	
 	@Put("/:id/increase-likes")
 	async increaseLike(req, res) {
-		return res.send(await this.service.increaseLike(req.params.id));
+		return res.send(await this.service.increaseLike(req.params.id, req.query.userId));
 	}
 	
 	@Put("/:id/decrease-likes")
 	async decreaseLike(req, res) {
-		return res.send(await this.service.decreaseLike(req.params.id));
+		return res.send(await this.service.decreaseLike(req.params.id, req.query.userId));
 	}
 };
 

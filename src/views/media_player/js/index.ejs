@@ -1,0 +1,59 @@
+<script type="text/javascript">
+    async function increaseLike(id) {
+        const filled = getElById("btn-like-post").getAttribute("fill");
+        if (filled === 'none') {
+            const res = await fetch('/api/posts/' + id + '/increase-likes?userId= <%= data.post.author.userId %>', {
+                method: "PUT"
+            });
+            const data = await res.json();
+            if (res.ok) {
+                getElById("stat-likes").innerText = data.likes;
+                getElById("btn-like-post").setAttribute("fill", "blue")
+            } else {
+                alert("Likes Failed!");
+            }
+        } else {
+            const res = await fetch('/api/posts/' + id + '/decrease-likes?userId= <%= data.post.author.userId %>', {
+                method: "PUT"
+            });
+            const data = await res.json();
+            if (res.ok) {
+                getElById("btn-like-post").setAttribute("fill", "none")
+                getElById("stat-likes").innerText = data.likes;
+            } else {
+                alert("Likes Failed!");
+            }
+        }
+    }
+
+    function watchVideo(postId) {
+        window.location = "/watch-videos/" + postId;
+    }
+
+    document.getElementById("press-comment").addEventListener("keydown", async e => {
+        if (e.key === "Enter") {
+            const comment = document.getElementById("press-comment").value;
+            const res = await createComment(comment);
+            if (res.ok) {
+                document.getElementById("list-comment").insertAdjacentHTML("beforebegin", `
+                    <div class="chat chat-start mt-3">
+                        <div class="chat-bubble ">
+                           ${comment}
+                        </div>
+                    </div>
+                `);
+            }
+        }
+    })
+
+    async function createComment(comment) {
+        return await fetch("/api/comments", {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: "POST",
+            body: JSON.stringify({postId: "<%= data.post.id%>", comment})
+        });
+    }
+</script>

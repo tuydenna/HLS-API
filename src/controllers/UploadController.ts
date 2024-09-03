@@ -50,7 +50,7 @@ export default class UploadController {
 	}
 	
 	@Post('/api/upload/content')
-	async uploadContent(req, res: Response): any {
+	async uploadContent(req, res: Response) {
 		try {
 			StorageEngine.uploadThumbnail(req, res, async function (err) {
 				if (err instanceof multer.MulterError) {
