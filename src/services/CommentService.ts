@@ -6,7 +6,7 @@ export default class CommentService {
 		return db.post.findMany({where: filter, include: {author: true, video: true}});
 	}
 	
-	async getOne(id: string, userId: string | undefined): Promise<Post> {
+	async getOne(id: string, userId: string | undefined){
 		return db.comment.findFirst();
 	}
 	

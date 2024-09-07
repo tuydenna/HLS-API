@@ -4,9 +4,11 @@ import path from "path";
 import cookieParser from "cookie-parser";
 import AutoRegisterControllers from "./index";
 import * as process from "process";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app: Express = express();
-const port: number = 3080;
+const port: number = Number(process.env.PORT || 3080);
 const router: Router = express.Router();
 
 //view engine setup

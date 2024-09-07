@@ -3,7 +3,8 @@
   "version": "1.0.3",
   "license": "xaio-din",
   "scripts": {
-    "start": "concurrently \"npx tsc --watch\" \"nodemon -q ./build/src/server.js\"",
+    "start": "node ./build/src/server.js",
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q ./build/src/server.js\"",
     "build": "tsc"
   },
   "dependencies": {
@@ -12,6 +13,7 @@
     "concurrently": "^8.2.2",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
+    "dotenv": "^16.4.5",
     "ejs": "~2.6.1",
     "express": "~4.16.1",
     "express-router-controller-khmer": "^1.1.2",

@@ -24,7 +24,7 @@ abstract class MainLoad {
 						const classInstance = new conPath();
 						await this.getDataReflection(classInstance);
 					} else {
-						const arr: string[] = conPath.split("\\");
+						const arr: string[] = conPath.includes("\\") ? conPath.split("\\") : conPath.split("/");
 						if (arr.length) {
 							const lastPath: string = arr[arr.length-1];
 							if (lastPath) {
