@@ -1,7 +1,6 @@
 import {Post, Prefix} from "../config/ExpressMethod";
 import * as crypto from "crypto";
 import {Request, Response} from "express";
-import JSONDB from "../services/JSONDB";
 import StorageEngine from "../services/StorageEngine";
 import {Get} from "express-router-controller-khmer";
 import multer from "multer";
@@ -10,8 +9,6 @@ import {storage_path, video_path} from "../constant/path";
 import db from "../config/database/db";
 import {faker} from "@faker-js/faker";
 import {User} from "@prisma/client";
-
-
 
 @Prefix('')
 export default class UploadController {
@@ -39,6 +36,7 @@ export default class UploadController {
 					})
 					res.send({data: file, message: "Upload Success ✅✅✅✅✅✅😊😊😊😎😎"})
 				} catch (e) {
+					console.log(e);
 					StorageEngine.remove(src);
 					res.send({message: "Upload Failed ✅✅✅✅✅✅😊😊😊😎😎"});
 				}

@@ -54,16 +54,20 @@ document.addEventListener("keydown", e => {
 // Timeline
 timelineContainer.addEventListener("mousemove", handleTimelineUpdate)
 timelineContainer.addEventListener("mousedown", toggleScrubbing)
+
 document.addEventListener("mouseup", e => {
   if (isScrubbing) toggleScrubbing(e)
 })
 document.addEventListener("mousemove", e => {
   if (isScrubbing) handleTimelineUpdate(e)
+  console.log("mousemove isScrubbing", isScrubbing);
 })
 
 let isScrubbing = false
 let wasPaused
 function toggleScrubbing(e) {
+  console.log("mousedown isScrubbing", isScrubbing);
+
   const rect = timelineContainer.getBoundingClientRect()
   const percent = Math.min(Math.max(0, e.x - rect.x), rect.width) / rect.width
   isScrubbing = (e.buttons & 1) === 1
@@ -80,6 +84,7 @@ function toggleScrubbing(e) {
 }
 
 function handleTimelineUpdate(e) {
+  console.log("data", "x", "y" in e);
   const rect = timelineContainer.getBoundingClientRect()
   const percent = Math.min(Math.max(0, e.x - rect.x), rect.width) / rect.width
   const previewImgNumber = Math.max(

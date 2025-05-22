@@ -1,10 +1,11 @@
 import createHttpError from "http-errors";
-import express, {Express, Router} from "express";
+import express, {Express, Router, } from "express";
 import path from "path";
 import cookieParser from "cookie-parser";
 import AutoRegisterControllers from "./index";
 import * as process from "process";
 import dotenv from "dotenv";
+import cores from "cors"
 dotenv.config();
 
 const app: Express = express();
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join('public')));
 app.use(express.static(path.join('storages')));
+app.use(cores({origin: "*"}))
 app.use(router);
 
 //AutoRegisterControllers({router, logging: true, controllerPath: [OtherController/*, UserController, StreamController,*/, path.join(__dirname, "controllers/*.js")]});

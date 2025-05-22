@@ -56,6 +56,7 @@
         progressBarEl.innerText = "0%";
 
         const {json} = await uploadStream();
+        console.log("json", json);
         formData.append("videoId", json.data.id);
 
         const response = await fetch("api/upload/content", {

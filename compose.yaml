@@ -4,11 +4,11 @@ services:
     depends_on:
       mongo:
         condition: service_started
-      mysql_db:
-        condition: service_started
+#      mysql_db:
+#        condition: service_started
     container_name: "web"
     image: node:18-alpine
-    command: sh -c "ls && npm install && npm run build && npx  prisma db push && npm start"
+    command: sh -c "ls && docker run --name some-mongo52 -d mongo  --replSet admin \ mongosh --eval 'rs.initiate()' && npm install && npm run build && npx  prisma db push && npm start"
     ports:
       - 3081:3082
     environment:
@@ -20,36 +20,50 @@ services:
 
   mongo:
     container_name: "mongo"
-    image: mongo
-    restart: always
+    image: mongo:latest
+    restart: on-failure
     ports:
       - 27017:27017
-#    environment:
-#      MONGO_INITDB_ROOT_USERNAME: root
-#      MONGO_INITDB_ROOT_PASSWORD: 123
-#      MONGO_INITDB_DATABASE: hsl_stream
+#    command: mongod --replSet admin && mongosh --eval 'rs.initiate()'
+    command: --replSet admin
+#    volumes:
+#      - ../HLS/mongod.conf:/etc/mongod.conf
 
-  mongo-express:
-    container_name: "mongo-express"
-    image: mongo-express
-    restart: always
-    ports:
-      - 8081:8081
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME:
-      ME_CONFIG_MONGODB_ADMINPASSWORD:
-      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
-      ME_CONFIG_BASICAUTH: false
-  mysql_db:
-    container_name: "mysql"
-    image: mysql
-    restart: always
-    ports:
-      - 4000:3306
-    environment:
-      MYSQL_USER: din
-      MYSQL_DATABASE: hls
-      MYSQL_PORT: 3306,
-      MYSQL_HOST: mysql
-      MYSQL_ROOT_PASSWORD: 123
-      MYSQL_PASSWORD: 123
+#  ubuntu:
+#    container_name: "ubuntu"
+#    image: ubuntu
+#    command: sh -c "apt-get update && apt-get -y install gnupg curl && curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \ gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg \--dearmor  && echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && apt-get install -y mongodb-org &&  systemctl start mongod"
+##    command: sh -c "apt-get update && apt-get -y install gnupg curl && curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \ gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg \--dearmor  && echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && apt-get install -y mongodb-org &&  systemctl start mongod"
+#    ports:
+#      - 1090:1090
+#    volumes:
+#      - ../HLS/mongod.conf:/etc/mongod.conf
+#    environment:
+#    MONGO_INITDB_ROOT_USERNAME: root
+#    MONGO_INITDB_ROOT_PASSWORD: 123
+#    MONGO_INITDB_DATABASE: hsl_stream
+
+#  mongo-express:
+#    container_name: "mongo-express"
+#    image: mongo-express
+#    restart: always
+#    ports:
+#      - 8081:8081
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME:
+#      ME_CONFIG_MONGODB_ADMINPASSWORD:
+#      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+#      ME_CONFIG_BASICAUTH: false
+#  mysql_db:
+#    container_name: "mysql"
+#    image: mysql
+#    restart: always
+#    ports:
+#      - 4000:3306
+#    environment:
+#      MYSQL_USER: din
+#      MYSQL_DATABASE: hls
+#      MYSQL_PORT: 3306,
+#      MYSQL_HOST: mysql
+#      MYSQL_ROOT_PASSWORD: 123
+#      MYSQL_PASSWORD: 123

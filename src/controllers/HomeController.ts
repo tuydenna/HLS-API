@@ -14,6 +14,7 @@ export default class HomeController {
 	async playVideo(req, res) {
 		const post = await this.service.getOne(req.params.id, undefined);
 		const posts = await this.service.getAllRelatedPosts(req.params.id);
+		console.log(post, "___________________________");
 		res.render("media_player/index", {title: "YOUTUBE", info: "Crazy Tool", data: {post, posts}});
 	}
 };

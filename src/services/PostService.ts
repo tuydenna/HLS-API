@@ -1,6 +1,5 @@
 import db from "../config/database/db";
 import {Post} from "@prisma/client";
-import {tr} from "@faker-js/faker";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -8,15 +7,20 @@ export default class PostService {
 	}
 	
 	async getOne(id: string, userId: string | undefined): Promise<Post> {
-		return db.post.findFirst({
+		const post = await db.post.findFirst({
 			where: {id},
 			include: {
 				author: true,
 				video: true,
-				likePosts: {where: {userId}},
+				likePosts: userId ? {where: {userId}} : false,
 				comments: true
 			}
 		});
+		if (!("likePosts" in post)) {
+			// @ts-ignore
+			post["likePosts"] = [];
+		}
+		return post
 	}
 	
 	async getAllRelatedPosts(id: string) {
