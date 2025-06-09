@@ -64,7 +64,7 @@ model File {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
   title String
   path  String
-  size  Int
+  size  In
   post  Post?
 }
 

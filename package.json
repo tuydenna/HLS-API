@@ -3,8 +3,8 @@
   "version": "1.0.3",
   "license": "xaio-din",
   "scripts": {
-    "start": "node ./build/src/server.js",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q ./build/src/server.js\"",
+    "start": "node ./build/server.js",
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q ./build/server.js\"",
     "build": "tsc"
   },
   "dependencies": {

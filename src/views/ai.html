@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Video Seeking with MSE</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 720px;
+        }
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+        }
+        video {
+            width: 100%;
+            border-radius: 8px;
+            background-color: #000;
+            margin-bottom: 15px;
+        }
+        .seek-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            margin-bottom: 10px;
+            overflow: hidden; /* To clip child elements */
+        }
+        .seek-bar-progress {
+            height: 100%;
+            background-color: #1a73e8; /* Playback progress */
+            border-radius: 10px 0 0 10px; /* Keep left radius */
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 2;
+        }
+        .seek-bar-buffered {
+            height: 100%;
+            background-color: #a0c3ff; /* Buffered range */
+            position: absolute;
+            top: 0;
+            z-index: 1;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1558b0;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .info {
+            background-color: #e8f0fe;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            white-space: pre-wrap; /* Preserve line breaks and spaces */
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #d1e0ff;
+        }
+        .time-display {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script> </head>
+<body>
+    <div class="container">
+        <h1>Manual Video Seeking with MSE</h1>
+
+        <video id="myVideo" controls></video> <div class="time-display">
+            <span id="currentTimeDisplay">0:00</span> / <span id="durationDisplay">0:00</span>
+        </div>
+
+        <div id="seekBarContainer" class="seek-bar-container">
+            <div id="seekBarBufferedContainer"></div> <div id="seekBarProgress" class="seek-bar-progress"></div>
+        </div>
+
+        <div class="controls">
+            <button id="loadVideoButton">Load Video</button>
+            <button id="playPauseButton" disabled>Play</button>
+        </div>
+
+        <div class="info" id="logOutput">
+            Log messages will appear here...
+        </div>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('myVideo');
+        const seekBarContainer = document.getElementById('seekBarContainer');
+        const seekBarProgress = document.getElementById('seekBarProgress');
+        const seekBarBufferedContainer = document.getElementById('seekBarBufferedContainer');
+        const loadVideoButton = document.getElementById('loadVideoButton');
+        const playPauseButton = document.getElementById('playPauseButton');
+        const logOutput = document.getElementById('logOutput');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const durationDisplay = document.getElementById('durationDisplay');
+
+        // --- Configuration ---
+        // Test video URL (ensure server supports Range requests and CORS if cross-origin)
+        // This is a 10s, 1MB H.264/AAC MP4 video, good for testing.
+        const videoUrl = 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4';
+        // const videoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4'; // Alternative, larger
+
+        // Codec string for the video. This MUST match your video file.
+        // For H.264 video and AAC audio (common for MP4):
+        const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        // If video only (e.g. H.264):
+        // const mimeCodec = 'video/mp4; codecs="avc1.42E01E"';
+
+        const CHUNK_SIZE = 500 * 1024; // 500KB, adjust as needed
+
+        // --- State Variables ---
+        let mediaSource;
+        let sourceBuffer;
+        let totalVideoBytes = 0;
+        let currentSegmentIndex = 0;
+        let isSeeking = false;
+        let pendingSeekTime = -1;
+        let isVideoLoaded = false;
+
+        // --- Utility Functions ---
+        function log(message) {
+            console.log(message);
+            logOutput.textContent = `${new Date().toLocaleTimeString()}: ${message}\n` + logOutput.textContent;
+            // Keep log short
+            const lines = logOutput.textContent.split('\n');
+            if (lines.length > 20) {
+                logOutput.textContent = lines.slice(0, 20).join('\n');
+            }
+        }
+
+        function formatTime(timeInSeconds) {
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        // --- MediaSource Event Handlers ---
+        function onSourceOpen() {
+            log('MediaSource opened. Creating SourceBuffer...');
+            try {
+                sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+                log(`SourceBuffer created with codec: ${mimeCodec}`);
+
+                // Event listeners for SourceBuffer
+                sourceBuffer.addEventListener('updateend', onSourceBufferUpdateEnd);
+                sourceBuffer.addEventListener('error', (e) => log(`SourceBuffer error: ${e}`));
+                sourceBuffer.addEventListener('abort', (e) => log(`SourceBuffer abort: ${e}`));
+
+                // Get total video size and then fetch the first chunk
+                getVideoMetadataAndLoadInitialChunk();
+
+            } catch (e) {
+                log(`Error creating SourceBuffer: ${e.message}. Check mimeCodec and video format.`);
+                alert(`Error creating SourceBuffer: ${e.message}. Ensure the video format matches the specified codec: ${mimeCodec}. Try a different video or codec string.`);
+            }
+        }
+
+        async function getVideoMetadataAndLoadInitialChunk() {
+            log('Fetching video metadata (total size)...');
+            try {
+                const response = await fetch(videoUrl, { method: 'HEAD' });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const contentLength = response.headers.get('Content-Length');
+                if (contentLength) {
+                    totalVideoBytes = parseInt(contentLength, 10);
+                    log(`Total video size: ${totalVideoBytes} bytes`);
+                    // Set MediaSource duration if known, or update later
+                    // For this demo, we'll let the browser figure it out or set it after first chunk.
+                    // mediaSource.duration = videoElement.duration; // This might be NaN initially
+
+                    // Fetch the first chunk of the video
+                    fetchAndAppendRange(0, Math.min(CHUNK_SIZE - 1, totalVideoBytes - 1));
+                } else {
+                    log('Could not get Content-Length. Manual seeking might be unreliable.');
+                    // Fallback: try fetching a small initial chunk anyway
+                    fetchAndAppendRange(0, CHUNK_SIZE - 1);
+                }
+            } catch (error) {
+                log(`Error fetching video metadata: ${error.message}`);
+                alert(`Could not fetch video metadata: ${error.message}. Ensure the video URL is correct and the server supports HEAD requests and CORS.`);
+            }
+        }
+
+
+        function onSourceBufferUpdateEnd() {
+            log(`SourceBuffer update ended. Buffered: ${getBufferedRangesString()}`);
+            updateBufferedView();
+
+            if (pendingSeekTime >= 0 && mediaSource.readyState === 'open' && !sourceBuffer.updating) {
+                log(`Applying pending seek to: ${formatTime(pendingSeekTime)}`);
+                videoElement.currentTime = pendingSeekTime;
+                pendingSeekTime = -1;
+                isSeeking = false;
+            } else if (isSeeking && !sourceBuffer.updating) {
+                // If still seeking but no specific time, implies more data might be needed or seek finished
+                isSeeking = false;
+            }
+
+            // If we've loaded the initial chunk and video duration is known, enable play
+            if (videoElement.duration && videoElement.duration > 0 && !playPauseButton.disabled && currentSegmentIndex === 0) {
+                log(`Initial chunk loaded. Video duration: ${formatTime(videoElement.duration)}`);
+            }
+            currentSegmentIndex++; // Naive increment, could be smarter
+        }
+
+        // --- Fetching and Appending Data ---
+        async function fetchAndAppendRange(startByte, endByte, seekToTimeAfterAppend = -1) {
+            if (sourceBuffer && sourceBuffer.updating) {
+                log('SourceBuffer is busy. Deferring fetch.');
+                // Optionally queue this request or wait
+                setTimeout(() => fetchAndAppendRange(startByte, endByte, seekToTimeAfterAppend), 100);
+                return;
+            }
+
+            log(`Fetching bytes: ${startByte}-${endByte}`);
+            try {
+                const response = await fetch(videoUrl, {
+                    headers: { 'Range': `bytes=${startByte}-${endByte}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} for range ${startByte}-${endByte}`);
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                log(`Fetched ${arrayBuffer.byteLength} bytes. Appending to SourceBuffer...`);
+
+                if (seekToTimeAfterAppend >= 0) {
+                    pendingSeekTime = seekToTimeAfterAppend;
+                }
+
+                sourceBuffer.appendBuffer(arrayBuffer);
+                // `onSourceBufferUpdateEnd` will be called when appending is done.
+
+            } catch (error) {
+                log(`Error fetching/appending range ${startByte}-${endByte}: ${error.message}`);
+                isSeeking = false; // Reset seeking flag on error
+                if (pendingSeekTime >= 0) pendingSeekTime = -1;
+            }
+        }
+
+        // --- UI Update Functions ---
+        function updateProgressBar() {
+            if (!videoElement.duration) return;
+            const percentage = (videoElement.currentTime / videoElement.duration) * 100;
+            seekBarProgress.style.width = `${percentage}%`;
+            currentTimeDisplay.textContent = formatTime(videoElement.currentTime);
+        }
+
+        function updateBufferedView() {
+            if (!videoElement.duration || !sourceBuffer || !sourceBuffer.buffered || sourceBuffer.buffered.length === 0) {
+                seekBarBufferedContainer.innerHTML = ''; // Clear previous buffered views
+                return;
+            }
+
+            seekBarBufferedContainer.innerHTML = ''; // Clear previous buffered views
+
+            const duration = videoElement.duration; // Use actual video duration if available
+                                                  // Fallback to mediaSource.duration if videoElement.duration is not yet set
+            const displayDuration = duration > 0 ? duration : (mediaSource && mediaSource.duration > 0 ? mediaSource.duration : 0);
+
+            if (displayDuration === 0) { // Cannot draw if duration is unknown
+                return;
+            }
+
+            for (let i = 0; i < sourceBuffer.buffered.length; i++) {
+                const start = sourceBuffer.buffered.start(i);
+                const end = sourceBuffer.buffered.end(i);
+
+                const left = (start / displayDuration) * 100;
+                const width = ((end - start) / displayDuration) * 100;
+
+                const bufferedSegmentDiv = document.createElement('div');
+                bufferedSegmentDiv.className = 'seek-bar-buffered';
+                bufferedSegmentDiv.style.left = `${left}%`;
+                bufferedSegmentDiv.style.width = `${width}%`;
+                // Ensure unique radius for segments
+                if (left === 0) bufferedSegmentDiv.style.borderRadius = '10px 0 0 10px';
+                if (left + width >= 99.9) bufferedSegmentDiv.style.borderRadius = (left === 0) ? '10px' : '0 10px 10px 0';
+
+                seekBarBufferedContainer.appendChild(bufferedSegmentDiv);
+                log(`Buffered range [${i}]: ${formatTime(start)} - ${formatTime(end)} (Visual: left ${left.toFixed(2)}%, width ${width.toFixed(2)}%)`);
+            }
+        }
+
+        function getBufferedRangesString() {
+            if (!sourceBuffer || !sourceBuffer.buffered || sourceBuffer.buffered.length === 0) {
+                return "[]";
+            }
+            let ranges = [];
+            for (let i = 0; i < sourceBuffer.buffered.length; i++) {
+                ranges.push(`[${formatTime(sourceBuffer.buffered.start(i))}-${formatTime(sourceBuffer.buffered.end(i))}]`);
+            }
+            return ranges.join(', ');
+        }
+
+        // --- Event Handlers ---
+        loadVideoButton.addEventListener('click', () => {
+            if (isVideoLoaded) {
+                log("Video already loaded or loading process started.");
+                return;
+            }
+            log('Load Video button clicked.');
+
+            if (!window.MediaSource) {
+                alert('MediaSource API is not supported in this browser.');
+                log('MediaSource API not supported.');
+                return;
+            }
+
+            mediaSource = new MediaSource();
+            videoElement.src = URL.createObjectURL(mediaSource);
+
+            mediaSource.addEventListener('sourceopen', onSourceOpen);
+            mediaSource.addEventListener('sourceended', () => log('MediaSource ended.'));
+            mediaSource.addEventListener('sourceclose', () => log('MediaSource closed.'));
+
+            loadVideoButton.disabled = true;
+            playPauseButton.disabled = false; // Enable play/pause after attempting to load
+            isVideoLoaded = true;
+        });
+
+        playPauseButton.addEventListener('click', () => {
+            if (!isVideoLoaded || !sourceBuffer) {
+                log("Video not loaded yet. Click 'Load Video' first.");
+                return;
+            }
+            if (videoElement.paused) {
+                videoElement.play()
+                    .then(() => playPauseButton.textContent = 'Pause')
+                    .catch(e => log(`Play error: ${e.message}`));
+            } else {
+                videoElement.pause();
+                playPauseButton.textContent = 'Play';
+            }
+        });
+
+        videoElement.addEventListener('loadedmetadata', () => {
+            log(`Video metadata loaded. Duration: ${formatTime(videoElement.duration)}`);
+            durationDisplay.textContent = formatTime(videoElement.duration);
+            if (mediaSource && mediaSource.readyState === 'open' && mediaSource.duration !== videoElement.duration) {
+                 // It's important that MediaSource.duration is set, often to the video's actual duration.
+                 // However, be careful setting it too early or if it's Infinity.
+                 if (isFinite(videoElement.duration) && videoElement.duration > 0) {
+                    try {
+                        // Only set if not already set or different and valid
+                        // mediaSource.duration = videoElement.duration;
+                        log(`Set MediaSource duration to: ${formatTime(videoElement.duration)}`);
+                    } catch (e) {
+                        log(`Error setting MediaSource duration: ${e.message}`);
+                    }
+                 }
+            }
+            updateProgressBar();
+            updateBufferedView();
+        });
+
+        videoElement.addEventListener('durationchange', () => {
+            log(`Video duration changed: ${formatTime(videoElement.duration)}`);
+            durationDisplay.textContent = formatTime(videoElement.duration);
+             if (mediaSource && mediaSource.readyState === 'open' && isFinite(videoElement.duration) && videoElement.duration > 0) {
+                // Update MediaSource duration if it changes and is valid
+                // This can happen as more data is loaded
+                try {
+                    // mediaSource.duration = videoElement.duration;
+                    log(`Updated MediaSource duration to: ${formatTime(videoElement.duration)}`);
+                } catch (e) {
+                    log(`Error updating MediaSource duration: ${e.message}`);
+                }
+            }
+            updateBufferedView(); // Duration change can affect buffered view percentages
+        });
+
+
+        videoElement.addEventListener('timeupdate', updateProgressBar);
+        videoElement.addEventListener('progress', updateBufferedView); // For native buffering updates if any
+
+        videoElement.addEventListener('play', () => playPauseButton.textContent = 'Pause');
+        videoElement.addEventListener('pause', () => playPauseButton.textContent = 'Play');
+        videoElement.addEventListener('ended', () => {
+            playPauseButton.textContent = 'Play';
+            log('Video ended.');
+        });
+
+        videoElement.addEventListener('waiting', () => {
+            log('Video waiting for data (buffering)...');
+        });
+
+        videoElement.addEventListener('playing', () => {
+            log('Video playing.');
+        });
+
+
+        seekBarContainer.addEventListener('click', (event) => {
+            if (!videoElement.duration || totalVideoBytes === 0) {
+                log('Cannot seek: video duration or total size unknown.');
+                return;
+            }
+            if (sourceBuffer && sourceBuffer.updating) {
+                log('Cannot seek: SourceBuffer is currently updating.');
+                return;
+            }
+
+            const rect = seekBarContainer.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            const seekTime = percentage * videoElement.duration;
+
+            log(`Seek bar clicked. Target time: ${formatTime(seekTime)} (${(percentage*100).toFixed(1)}%)`);
+            isSeeking = true;
+
+            // Check if the target time is already buffered
+            let isBuffered = false;
+            for (let i = 0; i < sourceBuffer.buffered.length; i++) {
+                if (seekTime >= sourceBuffer.buffered.start(i) && seekTime < sourceBuffer.buffered.end(i)) {
+                    isBuffered = true;
+                    break;
+                }
+            }
+
+            if (isBuffered) {
+                log(`Target time ${formatTime(seekTime)} is already buffered. Setting currentTime.`);
+                videoElement.currentTime = seekTime;
+                isSeeking = false;
+            } else {
+                log(`Target time ${formatTime(seekTime)} not buffered. Fetching corresponding segment.`);
+                // Estimate byte range based on time. This is a simplification.
+                // A more robust solution would use an index (e.g., MP4 'sidx' box)
+                // or a manifest (DASH/HLS).
+                const estimatedByteOffset = Math.floor((seekTime / videoElement.duration) * totalVideoBytes);
+                let startByte = Math.max(0, estimatedByteOffset - CHUNK_SIZE / 4); // Fetch a bit before
+                let endByte = Math.min(totalVideoBytes - 1, startByte + CHUNK_SIZE - 1);
+                startByte = Math.max(0, endByte - CHUNK_SIZE + 1); // Ensure startByte is valid if endByte was capped
+
+
+                // Basic strategy: remove existing buffer around seek point to make space,
+                // then fetch and append the new segment.
+                // More advanced strategies exist (e.g. append-only, careful overlap management).
+                // For simplicity, if sourceBuffer has space, we might not need to remove.
+                // Let's try appending first. If it fails due to QuotaExceededError, then implement removal.
+
+                // If sourceBuffer is full, you might need to remove some ranges.
+                // Example: sourceBuffer.remove(sourceBuffer.buffered.start(0), sourceBuffer.buffered.end(0));
+                // For this demo, we'll assume there's space or the browser handles it.
+                // A more robust solution would manage buffer levels.
+
+                log(`Estimated byte range for seek: ${startByte}-${endByte}`);
+
+                // If we are seeking to a point that is far from current buffer,
+                // it might be good to abort ongoing appends or clear buffer.
+                // For this example, we set pendingSeekTime and let updateEnd handle it.
+                fetchAndAppendRange(startByte, endByte, seekTime);
+            }
+        });
+
+        log("Script initialized. Click 'Load Video' to start.");
+    </script>
+</body>
+</html>
