@@ -23,6 +23,8 @@ model Post {
   views       Int    @default(0)
   description String
   thumbnail   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   author User @relation(fields: [authorId], references: [id])
   video  File @relation(fields: [videoId], references: [id])
@@ -46,6 +48,9 @@ model User {
   name      String?
   avatar    String?
   address   Address?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   userPosts UserPost[]
   posts     Post[]
   likePosts LikePost[]
@@ -64,13 +69,16 @@ model File {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
   title String
   path  String
-  size  In
+  size  Int
   post  Post?
 }
 
 model Comment {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   comment String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   post    Post   @relation(fields: [postId], references: [id])
   postId  String @db.ObjectId
 }

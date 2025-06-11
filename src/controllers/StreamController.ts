@@ -8,17 +8,18 @@ import json from "../bin/seekable_frame.json";
 export default class StreamController {
 
 	@Get('/streaming')
-	loadStream(req, res): any {
+	loadStream(req: Response, res: Response): any {
 		res.setHeader("Cache-Control", "public, max-age=604800")
 		res.render("streamingV2", {title: "Margay", info: "Margay Is a Cutest cats ever!"})
 	}
 
 	@Get('/api/stream-segment/fmp4/:segmentFile')
 	async streamSegmentFile(req: Request, res: Response) {
+		let segmentChunk: ReadStream;
 		try {
 			const videoPath: string = storage_path + "/videos/fmp4/" + req.params.segmentFile;
 			const videoSize: number = fs.statSync(videoPath).size;
-			const segmentChunk: ReadStream = fs.createReadStream(videoPath);
+			segmentChunk = fs.createReadStream(videoPath);
 
 			if (!req.params.segmentFile){
 				console.error(req.params.segmentFile);
@@ -26,18 +27,28 @@ export default class StreamController {
 			}
 
 			const headers = {
+				"Cache-Control": "max-age=1200",
 				"Accept-Ranges": "bytes",
 				"Content-Length": videoSize,
 				"Content-Type": "video/mp4"
 			}
 
+			res.setHeader("Expires", (new Date(Date.now() + 60 * 60 * 1000).toUTCString()))
+			console.log("get segment", req.params.segmentFile);
 			res.writeHead(206, headers)
-			segmentChunk.pipe(res);
+
+			segmentChunk.pipe(res, {end: true});
+
+			segmentChunk.on("end", () => {
+				segmentChunk.close();
+				res.end();
+			})
 		} catch (e) {
 			console.error(e);
 			if (e.code === "ENOENT") {
-				return res.status(404).json({message: "data not found!"})
+				return res.status(404).json({message: "segment not found!"})
 			}
+			segmentChunk.close();
 			return res.status(500).json({message: "error: "+e.message})
 		}
 	}
@@ -47,19 +58,18 @@ export default class StreamController {
 		try {
 			const videoPath: string = storage_path + req.params.src;
 			const videoSize: number = fs.statSync(videoPath).size;
-			console.log(req.headers.Range);
 			const requestedRange: number[] = req.headers.range.replace("bytes=", "").split("-").map(i => +i);
 			const start: number	= Math.min(requestedRange[0],videoSize);
 			const end: number 	= Math.min(requestedRange[1], videoSize); // 1== 1MB
 			const contentLength: number = end - start + 1; // 1== 1MB
 			const segmentChunk: ReadStream = fs.createReadStream(videoPath, { start, end: end ? end : undefined});
+
 			if (!req.headers.range){
 				console.error(req.headers);
 				return res.status(400).send("Range required!")
 			}
 
 			const headers = {
-				// 'Cache-Control': 'public, max-age=1000',
 				"Accept-Ranges": "bytes",
 				"Content-Range": `bytes ${start}-${end}/${videoSize}`,
 				"Content-Length": contentLength,
@@ -86,10 +96,6 @@ export default class StreamController {
 					console.log(data);
 					break;
 				}
-				/*if (i === seekTime) {
-					data = json[i];
-					break;
-				}*/
 			}
 			res.json({data: {time: data.startTime, start: data.startByte, end: data.startByte + (10 ** 6)}});
 		} catch (e) {
@@ -99,5 +105,11 @@ export default class StreamController {
 
 	}
 
+	@Get('/api/json')
+	getRes(req: Request, res: Response) {
+		res.setHeader("Cache-control", "max-age=5")
+		console.log("get json");
+		res.json({data: "df"})
+	}
 };
 
