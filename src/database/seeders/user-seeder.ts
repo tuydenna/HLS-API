@@ -13,9 +13,8 @@ import {faker} from "@faker-js/faker";
 
     const file = await db.file.create({
         data: {
-            title: faker.music.songName(),
             size: +faker.commerce.price(),
-            path: faker.image.avatarGitHub()
+            dir_path: "din/song-1"
         }
     })
 
@@ -26,7 +25,7 @@ import {faker} from "@faker-js/faker";
                 slug: faker.string.sample(),
                 title: faker.music.songName(),
                 description: faker.person.bio(),
-                thumbnail: faker.image.avatarGitHub()
+                thumbnail: "/thumbnail/thumbnail-1724322681816-729526334.png"
             }
     });
 

@@ -13,7 +13,9 @@ export default class PostService {
 				author: true,
 				video: true,
 				likePosts: userId ? {where: {userId}} : false,
-				comments: true
+				comments: {
+					orderBy: {createdAt: "desc"}
+				}
 			}
 		});
 		if (!("likePosts" in post)) {

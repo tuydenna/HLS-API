@@ -11,7 +11,7 @@ export default class CommentService {
 	}
 	
 	async create(data) {
-		return db.comment.create({data: {postId: data.postId, comment: data.comment}});
+		return db.comment.create({data: {postId: data.postId, text: data.text}});
 	}
 	
 	async delete(id) {

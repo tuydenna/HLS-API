@@ -67,15 +67,14 @@ model LikePost {
 
 model File {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
-  title String
-  path  String
+  dir_path String
   size  Int
   post  Post?
 }
 
 model Comment {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
-  comment String
+  text    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
