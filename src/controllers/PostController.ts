@@ -1,5 +1,5 @@
 import {Prefix} from "../config/ExpressMethod";
-import {Get, Put} from "express-router-controller-khmer";
+import {Get, Post, Put} from "express-router-controller-khmer";
 import PostService from "../services/PostService";
 
 @Prefix('/api/posts')
@@ -11,6 +11,19 @@ export default class PostController {
 	async getAll(req, res) {
 		const posts = await this.service.getAll();
 		return res.json({data: posts});
+	}
+
+	@Post("/")
+	async create(req, res) {
+		try {
+			console.log(req.body);
+			const posts = await this.service.create(req.body);
+			return res.json({data: posts});
+		} catch (e) {
+			throw e
+			return res.status(500).json({message: e.message});
+		}
+
 	}
 
 	@Get("/:id")

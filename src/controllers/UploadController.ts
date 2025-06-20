@@ -4,22 +4,54 @@ import {Request, Response} from "express";
 import StorageEngine from "../services/StorageEngine";
 import {Get} from "express-router-controller-khmer";
 import multer from "multer";
-import fs from "fs";
-import {storage_path, video_path} from "../constant/path";
+import fs, {WriteStream} from "fs";
+import {storage_path, thumbnail_path, video_path} from "../constant/path";
 import db from "../config/database/db";
 import {faker} from "@faker-js/faker";
 import {User} from "@prisma/client";
 
-@Prefix('')
+@Prefix('/api/files')
 export default class UploadController {
 	@Get('/upload')
 	view(req: Request, res: Response): any {
 		res.render("upload-form");
 	}
+
+	@Post("/thumbnail")
+	async uploadThumbnail(req: Request, res: Response): Promise<any> {
+		const {src, fileName} = this.getFilePath(req, thumbnail_path);
+		try {
+			await this.writeStream(req, src);
+			res.send({data:  {dir_path: fileName, size: Number(req.header("File-Size")),}, message: "Upload Success ✅✅✅✅✅✅😊😊😊😎😎"})
+		} catch (e) {
+			console.log(e);
+			StorageEngine.remove(src);
+			res.status(500).send({message: e.message});
+		}
+	}
+
+	@Post("/video")
+	async uploadVideoStream(req: Request, res: Response): Promise<any> {
+		const {src, fileName} = this.getFilePath(req, video_path);
+		try {
+			await this.writeStream(req, src);
+			const file = await db.file.create({
+				data: {
+					dir_path: fileName,
+					size: Number(req.header("File-Size")),
+				}
+			})
+			res.send({data: file, message: "Upload Success ✅✅✅✅✅✅😊😊😊😎😎"})
+		} catch (e) {
+			console.log(e);
+			StorageEngine.remove(src);
+			res.status(500).send({message: e.message});
+		}
+	}
 	
-	@Post('/api/upload/video')
-	 uploadVideoStream(req: Request, res: Response): any {
-		const {src, fileName}   = this.getFilePath(req);
+	@Post("/upload")
+	 uploadVideoStreamv2(req: Request, res: Response): any {
+		const {src, fileName}   = this.getFilePath(req, video_path);
 		try {
 			const file= fs.createWriteStream(src);
 			req.on("data", function (chunk) {
@@ -29,9 +61,8 @@ export default class UploadController {
 				try {
 					const file = await db.file.create({
 						data: {
-							path: fileName,
+							dir_path: fileName,
 							size: Number(req.header("File-Size")),
-							title: decodeURI(req.header("File-Name"))
 						}
 					})
 					res.send({data: file, message: "Upload Success ✅✅✅✅✅✅😊😊😊😎😎"})
@@ -43,7 +74,10 @@ export default class UploadController {
 			});
 		} catch (e) {
 			StorageEngine.remove(src);
+			console.log(e);
 			throw e;
+			res.statusCode = 404;
+			res.send(e)
 		}
 	}
 	
@@ -86,9 +120,31 @@ export default class UploadController {
 		}
 	}
 	
-	private getFilePath(req: Request) {
-		const fileName = video_path + crypto.randomUUID() +"."+ req.header("file-extension");
+	private getFilePath(req: Request, folder: string) {
+		const fileName = folder + crypto.randomUUID() +"."+ req.header("file-extension");
 		return  {src: storage_path + fileName, fileName};
+	}
+
+	private writeStream(req: Request, src: string): Promise<boolean> {
+
+		return new Promise((res, rej) => {
+			const file: WriteStream= fs.createWriteStream(src);
+
+			req.on("data", function (chunk) {
+				file.write(chunk);
+			});
+
+			req.on("end", async() => {
+				file.close();
+				res(true)
+			});
+
+			file.on("error", (err) => {
+				console.error("[write stream]:", err);
+				rej(false)
+			})
+		})
+
 	}
 };
 

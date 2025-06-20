@@ -14,7 +14,8 @@ export default class PostService {
 				video: true,
 				likePosts: userId ? {where: {userId}} : false,
 				comments: {
-					orderBy: {createdAt: "desc"}
+					orderBy: {createdAt: "desc"},
+					take: 10
 				}
 			}
 		});
@@ -24,7 +25,11 @@ export default class PostService {
 		}
 		return post
 	}
-	
+
+	create(post: Post): Promise<Post> {
+		return db.post.create({ data: {...post, slug: post.title.replace(" ", "_")}});
+	}
+
 	async getAllRelatedPosts(id: string) {
 		return db.post.findMany({where: {id: {not: id}}, include: {author: true, video: true}});
 	}
