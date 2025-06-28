@@ -1,5 +1,6 @@
 import db from "../config/database/db";
 import {Post} from "@prisma/client";
+import {faker} from "@faker-js/faker";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -27,18 +28,18 @@ export default class PostService {
 	}
 
 	create(post: Post): Promise<Post> {
-		return db.post.create({ data: {...post, slug: post.title.replace(" ", "_")}});
+		return db.post.create({ data: {...post, slug: faker.lorem.slug()}, include: {author: true}});
 	}
 
 	async getAllRelatedPosts(id: string) {
 		return db.post.findMany({where: {id: {not: id}}, include: {author: true, video: true}});
 	}
 	
-	async increaseLike(postId: string, userId: string) {
+	async likePost(postId: string, userId: string) {
 		const post: Post = await db.post.findFirst({
 			where: {id: postId}
 		}) as Post;
-		
+
 		const likePost = await db.likePost.findMany({
 			where: {postId, userId}
 		});
@@ -46,13 +47,13 @@ export default class PostService {
 		if(likePost.length) {
 			await db.likePost.update({where: {id: likePost[0].id}, data: {like: true}})
 		} else {
-			await db.likePost.create( {data: {postId, userId, like: true}});
+			await db.likePost.create({data: {postId, userId, like: true}});
 		}
 		
 		return await db.post.update({where: {id: postId}, data: {likes: post.likes + 1}});
 	}
 	
-	async decreaseLike(postId: string, userId: string) {
+	async disLikePost(postId: string, userId: string) {
 		const post: Post = await db.post.findFirst({
 			where: {id: postId}
 		}) as Post;

@@ -9,10 +9,20 @@
     "baseUrl": "./src",
     "resolveJsonModule": true,
     "sourceMap": false,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "paths": {
+      "@controllers/*": ["./controllers/*"],
+      "@services/*": ["./services/*"],
+      "@database/*": ["./database/*"],
+      "@interfaces/*": ["./interfaces/*"],
+      "@bin/*": ["./bin/*"],
+      "@config/*": ["./config/*"],
+      "@constant/*": ["./constant/*"],
+      "@utils/*": ["./utils/*"]
+    }
   },
   "exclude": [
     "node_modules",
     "public"
-  ]
+  ],
 }

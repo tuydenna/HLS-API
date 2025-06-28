@@ -7,6 +7,7 @@ import {faker} from "@faker-js/faker";
         data: {
             name: faker.person.fullName(),
             email: faker.internet.email(),
+            password: "$2b$10$1W5gPQ6TfToMaDin7Nf1ze7aiNyFkb8hOI/g0IoT.Ghoq5qPq734S",
             avatar: faker.image.avatarGitHub()
         }
     });

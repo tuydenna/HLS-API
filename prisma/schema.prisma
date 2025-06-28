@@ -13,6 +13,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PostStatus {
+  PENDING
+  PUBLISHED
+  ERROR
+}
+
 model Post {
   id          String @id @default(auto()) @map("_id") @db.ObjectId
   videoId     String @unique @db.ObjectId
@@ -23,6 +29,7 @@ model Post {
   views       Int    @default(0)
   description String
   thumbnail   String
+  status      PostStatus @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -44,10 +51,12 @@ model UserPost {
 
 model User {
   id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  email     String     @unique
   name      String?
+  email     String     @unique
+  password  String
   avatar    String?
-  address   Address?
+  token     String?
+  accessToken String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -75,6 +84,7 @@ model File {
 model Comment {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   text    String
+  author  Author
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -83,14 +93,13 @@ model Comment {
 }
 
 // Address is an embedded document
-type Address {
-  street String
-  city   String
-  state  String
-  zip    String
-}
-
 type Video {
   title    String
   fileName String
+}
+
+type Author {
+  id    String
+  name  String
+  avatar String
 }

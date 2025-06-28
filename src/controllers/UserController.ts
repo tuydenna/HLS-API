@@ -1,54 +1,38 @@
-// UserController.ts
 import { Request, Response } from 'express';
-import {Get, Post, Prefix} from '../config/ExpressMethod';
-import db from "../config/database/db";
+import db from "@config/database/db";
 import {faker} from "@faker-js/faker";
-import {Put} from "express-router-controller-khmer";
+import {Put,Get, Post, Prefix } from "express-router-controller-khmer";
+import UserService from "@services/UserService";
+import ResBaseController from "@controllers/ResBaseController";
 
-@Prefix("/api")
-export default class UserController {
-	
-	@Get('/users')
+@Prefix("/api/users")
+export default class UserController extends ResBaseController{
+
+	private readonly service: UserService = new UserService();
+
+	@Get('/')
 	//@AuthMiddleware()
 	async getAllUsers(req: Request, res: Response) {
 		return res.send(await db.user.findMany());
 	}
 	
-	@Get('/users/:id')
+	@Get('/:id')
 	getUserById(req: Request, res: Response) {
 		const userId = req.params.id;
 		res.send(`Get user with ID: ${userId}`);
 	}
 	
-	@Post('/users')
+	@Post('/')
 	async create(req: Request, res: Response) {
-		const user = await db.user.create({
-			data: {
-				name: faker.person.fullName(),
-				address: {
-					city: faker.location.city(),
-					zip: faker.location.zipCode(),
-					state: faker.location.state(),
-					street: faker.location.street()
-				},
-				email: faker.internet.email()
-			}
-		});
-		return res.send(user);
+		return this.resSuccess(res,  await this.service.create(req.body))
 	}
 	
-	@Put('/users/:id')
+	@Put('/:id')
 	async update(req: Request, res: Response) {
 		const user = await db.user.update({
 			where: {id: req.params.id},
 			data: {
 				name: faker.person.fullName(),
-				address: {
-					city: faker.location.city(),
-					zip: faker.location.zipCode(),
-					state: faker.location.state(),
-					street: faker.location.street()
-				},
 				email: faker.internet.email()
 			}
 		});

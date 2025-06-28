@@ -1,45 +1,41 @@
-import {Prefix} from "../config/ExpressMethod";
-import {Get, Post, Put} from "express-router-controller-khmer";
-import PostService from "../services/PostService";
+import {Get, Post, Put, Prefix} from "express-router-controller-khmer";
+import PostService from "@services/PostService";
+import ResBaseController from "@controllers/ResBaseController";
+import {Request, Response} from "express";
 
 @Prefix('/api/posts')
-export default class PostController {
+export default class PostController  extends ResBaseController{
 	
 	private readonly service: PostService = new PostService();
 
 	@Get("/")
-	async getAll(req, res) {
-		const posts = await this.service.getAll();
-		return res.json({data: posts});
+	async getAll(req: Request, res: Response) {
+		console.log(req.cookies, req.get("cookie"));
+		return this.resSuccess(res, await this.service.getAll())
 	}
 
 	@Post("/")
-	async create(req, res) {
+	async create(req: Request, res: Response) {
 		try {
-			console.log(req.body);
-			const posts = await this.service.create(req.body);
-			return res.json({data: posts});
+			return this.resSuccess(res, await this.service.create(req.body));
 		} catch (e) {
-			throw e
-			return res.status(500).json({message: e.message});
+			return this.resError(res, e.message)
 		}
-
 	}
 
 	@Get("/:id")
-	async getOne(req, res) {
-		const post = await this.service.getOne(req.params.id, undefined);
-		return res.json({data: post});
+	async getOne(req: Request, res: Response) {
+		return this.resSuccess(res, await this.service.getOne(req.params.id, undefined))
 	}
 
-	@Put("/:id/increase-likes")
-	async increaseLike(req, res) {
-		return res.send(await this.service.increaseLike(req.params.id, req.query.userId));
+	@Put("/:id/likes")
+	async likePost(req: Request<{id: string}, null , null, {authId: string}>, res: Response) {
+		return this.resSuccess(res, await this.service.likePost(req.params.id, req.query.authId))
 	}
 	
-	@Put("/:id/decrease-likes")
-	async decreaseLike(req, res) {
-		return res.send(await this.service.decreaseLike(req.params.id, req.query.userId));
+	@Put("/:id/dislikes")
+	async disLikePost(req: Request<{id: string}, null , null, {authId: string}>, res: Response) {
+		return this.resSuccess(res, await this.service.disLikePost(req.params.id, req.query.authId))
 	}
 
 };

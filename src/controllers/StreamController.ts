@@ -1,22 +1,15 @@
-import {Get, Prefix} from "../config/ExpressMethod";
+import {Get, Prefix} from "express-router-controller-khmer";
 import fs, {ReadStream} from "fs";
-import {storage_path} from "../constant/path";
+import {storage_path} from "@constant/path";
 import {Request, Response} from "express"
-import json from "../bin/seekable_frame.json";
 import FileService from "../services/FileService";
 import {File} from "@prisma/client"
-import {IPlaylist} from "../types/stream";
+import {IPlaylist} from "@interfaces/stream";
 
-@Prefix('')
+@Prefix('/api/streams/fmp4')
 export default class StreamController {
 
-	@Get('/streaming')
-	loadStream(req: Response, res: Response): any {
-		res.setHeader("Cache-Control", "public, max-age=604800")
-		res.render("streamingV2", {title: "Margay", info: "Margay Is a Cutest cats ever!"})
-	}
-
-	@Get('/api/stream-segment/fmp4/:fileId/:segmentFile')
+	@Get('/:fileId/:segmentFile')
 	async streamSegmentFile(req: Request, res: Response) {
 		let segmentChunk: ReadStream;
 		try {
@@ -61,7 +54,7 @@ export default class StreamController {
 		}
 	}
 
-	@Get('/api/stream-segment/fmp4/seeks/:fileId/:currentTime')
+	@Get('/seeks/:fileId/:currentTime')
 	async streamSeekingSegmentFile(req: Request, res: Response) {
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
