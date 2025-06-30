@@ -1,5 +1,5 @@
 import db from "@config/database/db";
-import {User} from "@prisma/client";
+import {Prisma, User} from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 import {getEnv} from "@utils/index";
@@ -10,8 +10,13 @@ export default class UserService {
 		return db.user.findFirstOrThrow({where: {id}});
 	}
 
+	async getOneByUsername(username: string): Promise<User> {
+		return db.user.findFirst({where: {email: username}});
+	}
+
 	async create(data: User): Promise<User> {
 		try {
+			console.log(data);
 			data.password = bcrypt.hashSync(data.password, 10);
 			const user: User = await db.user.create({data});
 			const token: string = jwt.sign({authId: user.id}, getEnv("JWT_SECRET") || "", {expiresIn: getEnv("JWT_EXPIRE_IN") as StringValue})
@@ -26,5 +31,9 @@ export default class UserService {
 			console.warn("db error", e.message);
 			throw new Error(e.message);
 		}
+	}
+
+	async update(critical: Prisma.UserWhereUniqueInput, data: Prisma.UserUpdateInput): Promise<User> {
+		return db.user.update({where: critical, data});
 	}
 }
