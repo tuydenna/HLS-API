@@ -1,0 +1,7 @@
+### Create a new user
+# @name createUser
+POST http://localhost:4000/send-email
+Content-Type: application/json
+Accept: application/json
+
+{"to":"friend@example.com", "subject":"Hi!", "text":"This was sent via RabbitMQ!"}

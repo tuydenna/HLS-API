@@ -1,5 +1,5 @@
-import db from "../config/database/db";
-import {Post} from "@prisma/client";
+import db from "@config/database/db";
+import {LikePost, Post} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 
 export default class PostService {
@@ -8,12 +8,13 @@ export default class PostService {
 	}
 	
 	async getOne(id: string, userId: string | undefined): Promise<Post> {
+		console.log("userId", userId);
 		const post = await db.post.findFirst({
 			where: {id},
 			include: {
 				author: true,
 				video: true,
-				likePosts: userId ? {where: {userId}} : false,
+				likePosts: {where: {userId}, take: 1},
 				comments: {
 					orderBy: {createdAt: "desc"},
 					take: 10
@@ -35,31 +36,47 @@ export default class PostService {
 		return db.post.findMany({where: {id: {not: id}}, include: {author: true, video: true}});
 	}
 	
-	async likePost(postId: string, userId: string) {
-		const post: Post = await db.post.findFirst({
+	async likePost(postId: string, userId: string): Promise<Post> {
+		const post: Post = await db.post.findFirstOrThrow({
 			where: {id: postId}
 		}) as Post;
 
-		const likePost = await db.likePost.findMany({
+		const likePost: LikePost | null = await db.likePost.findFirst({
 			where: {postId, userId}
 		});
-		
-		if(likePost.length) {
-			await db.likePost.update({where: {id: likePost[0].id}, data: {like: true}})
+
+		if (likePost && likePost.like === true) {
+			return post;
+		}
+
+		if (likePost && likePost.like === false) {
+			await db.likePost.update({where: {id: likePost.id}, data: {like: true}});
 		} else {
 			await db.likePost.create({data: {postId, userId, like: true}});
 		}
-		
-		return await db.post.update({where: {id: postId}, data: {likes: post.likes + 1}});
+
+		return db.post.update({where: {id: postId}, data: {likes: post.likes + 1}});
 	}
-	
-	async disLikePost(postId: string, userId: string) {
-		const post: Post = await db.post.findFirst({
+
+	async disLikePost(postId: string, userId: string): Promise<Post> {
+		const post: Post = await db.post.findFirstOrThrow({
 			where: {id: postId}
 		}) as Post;
-		
-		await db.likePost.updateMany({where: {userId, postId}, data: {like: false}})
-		
-		return await db.post.update({where: {id: postId}, data: {likes: post.likes - 1}});
+
+		const likePost: LikePost | null = await db.likePost.findFirst({
+			where: {postId, userId}
+		});
+
+		if (likePost && likePost.like === false) {
+			return post;
+		}
+
+		if (likePost && likePost.like === true) {
+			await db.likePost.update({where: {id: likePost.id}, data: {like: false}});
+		} else {
+			await db.likePost.create({data: {postId, userId, like: false}});
+		}
+
+		return db.post.update({where: {id: postId}, data: {likes: post.likes - 1}});
 	}
 }
