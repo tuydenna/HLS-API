@@ -22,6 +22,7 @@
     "ejs": "~2.6.1",
     "express": "~4.16.1",
     "express-router-controller-khmer": "^1.1.2",
+    "ffmpeg": "^0.0.4",
     "google-protobuf": "^3.21.4",
     "http-errors": "~1.6.3",
     "jsonwebtoken": "^9.0.2",
