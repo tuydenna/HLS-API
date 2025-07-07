@@ -1,5 +1,5 @@
 import createHttpError from "http-errors";
-import express, {Express, Router,} from "express";
+import express, {Express, Router} from "express";
 import path from "path";
 import cookieParser from "cookie-parser";
 import AutoRegisterControllers from "./index";
@@ -7,6 +7,7 @@ import * as process from "process";
 import dotenv from "dotenv";
 import {AuthMiddleware} from "@config/middlewares/auth.middleware";
 import {coresMiddleware} from "@config/middlewares/cores.middleware";
+import {connectRabbitMQ} from "@lib/message-queue/mq-connector";
 
 dotenv.config();
 
@@ -48,6 +49,7 @@ app.use(function(err, req, res, next) {
     res.send({message: err.message});
 });
 
-app.listen(port, function (){
+app.listen(port, async function (){
+    await connectRabbitMQ();
     console.log("server is running on port:" + "http://localhost:"+port);
 })

@@ -56,6 +56,7 @@ model User {
   password  String
   avatar    String?
   token     String?
+  userDir  String
   accessToken String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -76,7 +77,8 @@ model LikePost {
 
 model File {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
-  dir_path String
+  dirPath String
+  filePath String
   size  Int
   post  Post?
 }

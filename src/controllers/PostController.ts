@@ -25,7 +25,7 @@ export default class PostController  extends ResBaseController{
 
 	@Get("/:id")
 	async getOne(req: Request, res: Response) {
-		return this.resSuccess(res, await this.service.getOne(req.params.id, req["auth"].id))
+		return this.resSuccess(res, await this.service.getOne(req.params.id, req["auth"].id));
 	}
 
 	@Put("/:id/likes")

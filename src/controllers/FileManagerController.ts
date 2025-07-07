@@ -6,6 +6,8 @@ import fs, {WriteStream} from "fs";
 import {avatar_path, storage_path, thumbnail_path, video_path} from "@constant/path";
 import db from "@config/database/db";
 import ResBaseController from "@controllers/ResBaseController";
+import UserService from "@services/UserService";
+import {User} from "@prisma/client";
 
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
@@ -15,7 +17,7 @@ export default class FileManagerController extends ResBaseController{
 		const {src, fileName} = this.getFilePath(req, thumbnail_path);
 		try {
 			await this.writeStream(req, src);
-			return this.resSuccess(res, {dir_path: fileName, size: Number(req.header("File-Size"))});
+			return this.resSuccess(res, {dirPath: fileName, size: Number(req.header("File-Size"))});
 		} catch (e) {
 			console.warn("[File Upload]: ", e);
 			StorageEngine.remove(src);
@@ -25,16 +27,24 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/video")
 	async uploadVideoStream(req: Request, res: Response): Promise<any> {
-		const {src, fileName} = this.getFilePath(req, video_path);
+		const user: User = await new UserService().getOne(req["auth"].id);
+		const outputDir = video_path + user.userDir + "/" + crypto.randomUUID()
+		const fullOutputDir = storage_path + outputDir;
+		const {src, fileName} = this.getFilePath(req, outputDir, "original" );
+
 		try {
-			await this.writeStream(req, src);
-			const file = await db.file.create({
-				data: {
-					dir_path: fileName,
-					size: Number(req.header("File-Size")),
-				}
-			})
-			return this.resSuccess(res, file);
+			if (!fs.existsSync(fullOutputDir)) {
+				fs.mkdirSync(fullOutputDir, {recursive: true});
+				await this.writeStream(req, src);
+				const file = await db.file.create({
+					data: {
+						dirPath: outputDir,
+						filePath: fileName,
+						size: Number(req.header("File-Size")),
+					}
+				})
+				return this.resSuccess(res, file);
+			}
 		} catch (e) {
 			console.warn("[File Upload]: ", e);
 			StorageEngine.remove(src);
@@ -48,7 +58,7 @@ export default class FileManagerController extends ResBaseController{
 		try {
 			await this.writeStream(req, src);
 			console.log("uploading avatar");
-			return this.resSuccess(res, {dir_path: fileName, size: Number(req.header("File-Size"))});
+			return this.resSuccess(res, {dirPath: fileName, size: Number(req.header("File-Size"))});
 		} catch (e) {
 			console.warn("[File Upload]: ", e);
 			StorageEngine.remove(src);
@@ -57,8 +67,8 @@ export default class FileManagerController extends ResBaseController{
 	}
 
 	
-	private getFilePath(req: Request, folder: string) {
-		const fileName = folder + crypto.randomUUID() +"."+ req.header("file-extension");
+	private getFilePath(req: Request, folder: string, name: string = crypto.randomUUID()) {
+		const fileName = folder +"/"+ name +"."+ req.header("file-extension");
 		return  {src: storage_path + fileName, fileName};
 	}
 

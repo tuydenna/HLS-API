@@ -1,6 +1,7 @@
 import db from "@config/database/db";
-import {LikePost, Post} from "@prisma/client";
+import {LikePost, Post, PostStatus} from "@prisma/client";
 import {faker} from "@faker-js/faker";
+import {sendMQ} from "@lib/message-queue/mq-connector";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -8,7 +9,6 @@ export default class PostService {
 	}
 	
 	async getOne(id: string, userId: string | undefined): Promise<Post> {
-		console.log("userId", userId);
 		const post = await db.post.findFirst({
 			where: {id},
 			include: {
@@ -28,8 +28,17 @@ export default class PostService {
 		return post
 	}
 
-	create(post: Post): Promise<Post> {
-		return db.post.create({ data: {...post, slug: faker.lorem.slug()}, include: {author: true}});
+	async create(data: Post): Promise<Post> {
+		const post = await db.post.create({
+			data: {
+				...data,
+				slug: faker.lorem.slug()
+			},
+			include: {author: true, video: true}
+		});
+
+		sendMQ("fragment_upload__queue", {...post.video, postId: post.id});
+		return post
 	}
 
 	async getAllRelatedPosts(id: string) {
@@ -78,5 +87,9 @@ export default class PostService {
 		}
 
 		return db.post.update({where: {id: postId}, data: {likes: post.likes - 1}});
+	}
+
+	updatePostStatus(id: string, status: PostStatus): Promise<Post> {
+		return db.post.update({where: {id}, data: {status: status}});
 	}
 }

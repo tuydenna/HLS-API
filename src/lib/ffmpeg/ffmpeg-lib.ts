@@ -1,7 +1,5 @@
 import path from "path";
-import {video_path} from "@constant/path";
 import {execSync} from "child_process";
-import parseM3u8PlaylistToJSON from "@bin/ffmpeg/m3u8-playlist-parser";
 
 export default class FfmpegLib {
     private commands: string[] = ["ffmpeg -i"]
@@ -58,21 +56,4 @@ export default class FfmpegLib {
         this.save();
         return {playlistOutput, segmentOutput, initOutput};
     }
-}
-
-const outDir = path.join(process.cwd(), "../../../storages" + video_path + "/media_segments");
-const inputFile = path.join(process.cwd(), "../../../storages" + video_path + "/video4.mp4");
-
-try {
-    const outputs = new FFMPEG(inputFile)
-        .addVideoCodec("libx264")
-        .addAudioCodec("aac")
-        .addAudioBitRate("128k")
-        .addCommand("-map", "0")
-        .addCommand("-preset", "veryfast")
-        .addCommand("-crf", "23")
-        .saveToHLS(outDir);
-    parseM3u8PlaylistToJSON(outputs.playlistOutput, outDir/segments);
-} catch (e) {
-    console.log(e);
 }

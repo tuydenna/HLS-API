@@ -1,6 +1,6 @@
 import {Get, Prefix} from "express-router-controller-khmer";
 import fs, {ReadStream} from "fs";
-import {storage_path} from "@constant/path";
+import {getStorageLink, storage_path} from "@constant/path";
 import {Request, Response} from "express"
 import FileService from "../services/FileService";
 import {File} from "@prisma/client"
@@ -18,7 +18,7 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			const videoPath: string = storage_path + "/videos/fmp4/" + video.dir_path + "/" + req.params.segmentFile;
+			const videoPath: string = getStorageLink(video.dirPath + "/" + req.params.segmentFile) ;
 			const videoSize: number = fs.statSync(videoPath).size;
 			segmentChunk = fs.createReadStream(videoPath);
 
@@ -63,7 +63,7 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			const dirPath: string = storage_path + "/videos/fmp4/" + video.dir_path + "/"
+			const dirPath: string = storage_path + "/videos/fmp4/" + video.dirPath + "/"
 			const currentTime: number = +req.params.currentTime;
 			const segmentPlaylist: IPlaylist[] = JSON.parse(fs.readFileSync(dirPath + "playlist.json").toString())
 			let totalTime: number = 0, playlist: IPlaylist;

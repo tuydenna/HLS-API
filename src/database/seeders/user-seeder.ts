@@ -1,4 +1,4 @@
-import db from "../../config/database/db";
+import db from "@config/database/db";
 import {faker} from "@faker-js/faker";
 
 (async function () {
@@ -6,8 +6,9 @@ import {faker} from "@faker-js/faker";
     const user = await db.user.create({
         data: {
             name: faker.person.fullName(),
-            email: faker.internet.email(),
+            email: "admin@gmail.com",
             password: "$2b$10$1W5gPQ6TfToMaDin7Nf1ze7aiNyFkb8hOI/g0IoT.Ghoq5qPq734S",
+            userDir: "/" + crypto.randomUUID(),
             avatar: faker.image.avatarGitHub()
         }
     });
@@ -15,7 +16,8 @@ import {faker} from "@faker-js/faker";
     const file = await db.file.create({
         data: {
             size: +faker.commerce.price(),
-            dir_path: "din/song-1"
+            dirPath: crypto.randomUUID(),
+            filePath: "din/song-1"
         }
     })
 

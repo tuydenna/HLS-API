@@ -6,6 +6,7 @@ export default class ResBaseController {
 	}
 
 	resError(response: Response, message: string = "internal error", code =500) {
+		console.log(message);
 		return response.status(code).json({message});
 	}
 }

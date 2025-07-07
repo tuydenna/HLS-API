@@ -4,11 +4,11 @@ import path from "path";
 export default function parseM3u8PlaylistToJSON(m3u8PlaylistFile: string, outputDir: string) {
     try {
         const fileData: string = fs.readFileSync(m3u8PlaylistFile).toString();
-        const lines = fileData.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        let duration = 0;
-        let currentSegment = { start: 0, url: '' };
-        const segments = [];
-        let initSegmentUrl = '';
+        const lines: string[] = fileData.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        let duration: number = 0;
+        let currentSegment = { start: 0, url: '', duration: 0 };
+        const segments: {start: number, url: string, duration: number}[] = [];
+        let initSegmentUrl: string = '';
 
         for (const line of lines) {
             if (line.startsWith('#EXT-X-MAP:')) {

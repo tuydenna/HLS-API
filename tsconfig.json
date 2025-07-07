@@ -16,7 +16,9 @@
       "@database/*": ["./database/*"],
       "@interfaces/*": ["./interfaces/*"],
       "@bin/*": ["./bin/*"],
+      "@lib/*": ["./lib/*"],
       "@config/*": ["./config/*"],
+      "@container/*": ["./container/*"],
       "@constant/*": ["./constant/*"],
       "@utils/*": ["./utils/*"]
     }
