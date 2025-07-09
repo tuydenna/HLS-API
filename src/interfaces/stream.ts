@@ -1,7 +1,13 @@
-interface IPlaylist {
+interface ISegmentPlaylist {
     fileName: string;
     start: number;
     duration: number;
 }
 
-export type { IPlaylist };
+interface IPlaylist {
+    initSegmentUrl: string;
+    segments: ISegmentPlaylist[];
+    duration: number;
+}
+
+export type { IPlaylist, ISegmentPlaylist };

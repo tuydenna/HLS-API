@@ -76,11 +76,12 @@ model LikePost {
 }
 
 model File {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  dirPath String
-  filePath String
-  size  Int
-  post  Post?
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  dirPath   String
+  filePath  String
+  size      Float
+  duration  Float @default(0)
+  post      Post?
 }
 
 model Comment {

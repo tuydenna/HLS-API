@@ -10,7 +10,6 @@ export default class PostController  extends ResBaseController{
 
 	@Get("/")
 	async getAll(req: Request, res: Response) {
-		console.log(req.cookies, req.get("cookie"));
 		return this.resSuccess(res, await this.service.getAll())
 	}
 

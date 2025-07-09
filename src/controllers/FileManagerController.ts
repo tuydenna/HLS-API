@@ -17,7 +17,7 @@ export default class FileManagerController extends ResBaseController{
 		const {src, fileName} = this.getFilePath(req, thumbnail_path);
 		try {
 			await this.writeStream(req, src);
-			return this.resSuccess(res, {dirPath: fileName, size: Number(req.header("File-Size"))});
+			return this.resSuccess(res, {filePath: fileName, size: Number(req.header("File-Size"))});
 		} catch (e) {
 			console.warn("[File Upload]: ", e);
 			StorageEngine.remove(src);
@@ -58,7 +58,7 @@ export default class FileManagerController extends ResBaseController{
 		try {
 			await this.writeStream(req, src);
 			console.log("uploading avatar");
-			return this.resSuccess(res, {dirPath: fileName, size: Number(req.header("File-Size"))});
+			return this.resSuccess(res, {filePath: fileName, size: Number(req.header("File-Size"))});
 		} catch (e) {
 			console.warn("[File Upload]: ", e);
 			StorageEngine.remove(src);

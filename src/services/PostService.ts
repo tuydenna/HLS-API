@@ -9,7 +9,7 @@ export default class PostService {
 	}
 	
 	async getOne(id: string, userId: string | undefined): Promise<Post> {
-		const post = await db.post.findFirst({
+		const post = await db.post.findFirstOrThrow({
 			where: {id},
 			include: {
 				author: true,
@@ -37,7 +37,7 @@ export default class PostService {
 			include: {author: true, video: true}
 		});
 
-		sendMQ("fragment_upload__queue", {...post.video, postId: post.id});
+		sendMQ({...post.video, postId: post.id});
 		return post
 	}
 
@@ -89,7 +89,19 @@ export default class PostService {
 		return db.post.update({where: {id: postId}, data: {likes: post.likes - 1}});
 	}
 
-	updatePostStatus(id: string, status: PostStatus): Promise<Post> {
-		return db.post.update({where: {id}, data: {status: status}});
+	updatePostFromQueue(id: string, updateData: {status: PostStatus, duration?: number}): Promise<Post> {
+		return db.post.update({
+			where: {id},
+			data: {
+				status: updateData.status,
+				video: {
+					update: {
+						data: {
+							duration: updateData.duration
+						}
+					}
+				}
+			}
+		});
 	}
 }

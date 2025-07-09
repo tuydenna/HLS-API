@@ -4,7 +4,7 @@ import {getStorageLink, storage_path} from "@constant/path";
 import {Request, Response} from "express"
 import FileService from "../services/FileService";
 import {File} from "@prisma/client"
-import {IPlaylist} from "@interfaces/stream";
+import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
@@ -63,16 +63,17 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			const dirPath: string = storage_path + "/videos/fmp4/" + video.dirPath + "/"
+			const playlistPath: string = getStorageLink(video.dirPath, "/playlist.json");
+			console.log("playlistPath", playlistPath);
 			const currentTime: number = +req.params.currentTime;
-			const segmentPlaylist: IPlaylist[] = JSON.parse(fs.readFileSync(dirPath + "playlist.json").toString())
-			let totalTime: number = 0, playlist: IPlaylist;
+			const playlist: IPlaylist = JSON.parse(fs.readFileSync(playlistPath).toString());
+			console.log("segmentPlaylist", playlist);
+			let totalTime: number = 0, currentSegment: ISegmentPlaylist;
 
-			for (const seg of segmentPlaylist) {
+			for (const seg of playlist.segments) {
 				totalTime += seg.duration;
-				console.log(seg);
 				if (totalTime >= currentTime) {
-					playlist = seg;
+					currentSegment = seg;
 					break;
 				}
 			}
@@ -81,7 +82,7 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			req.params.segmentFile = playlist.fileName;
+			req.params.segmentFile = currentSegment.fileName;
 
 			return this.streamSegmentFile(req, res)
 		} catch (e) {

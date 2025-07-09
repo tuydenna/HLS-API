@@ -17,10 +17,10 @@ export default class UserService {
 	async create(data: User): Promise<User> {
 		try {
 			data.password = bcrypt.hashSync(data.password, 10);
+			data.userDir = "/channel-"+crypto.randomUUID();
 			const user: User = await db.user.create({data});
 			const token: string = jwt.sign({authId: user.id}, getEnv("JWT_SECRET") || "", {expiresIn: getEnv("JWT_EXPIRE_IN") as StringValue})
 			user.token = token;
-			user.userDir = "/"+crypto.randomUUID();
 			user.accessToken = token;
 			await db.user.update({where: {id: user.id}, data: {token: token, accessToken: token}});
 			return user;
