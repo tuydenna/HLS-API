@@ -4,7 +4,9 @@ import {Router} from "express";
 interface ConfigInt {
 	router: Router,
 	controllerPath: any[],
-	logging: boolean
+	logging: boolean,
+	errorInterceptor?: object,
+	responseInterceptor?: object,
 }
 
 export interface AutoRegisterInt {

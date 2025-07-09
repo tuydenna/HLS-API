@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import {AuthMiddleware} from "@config/middlewares/auth.middleware";
 import {coresMiddleware} from "@config/middlewares/cores.middleware";
 import {connectRabbitMQ} from "@lib/message-queue/mq-connector";
+import RedisServer from "@lib/redis/redis-server";
 
 dotenv.config();
 
@@ -39,7 +40,7 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
-    console.warn( err.message);
+    console.warn("[Global interceptor]:", err.code, err.message);
     // set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -51,5 +52,6 @@ app.use(function(err, req, res, next) {
 
 app.listen(port, async function (){
     await connectRabbitMQ();
+    await new RedisServer().connect();
     console.log("server is running on port:" + "http://localhost:"+port);
 })

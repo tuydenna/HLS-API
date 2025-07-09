@@ -2,6 +2,7 @@ import db from "@config/database/db";
 import {LikePost, Post, PostStatus} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 import {sendMQ} from "@lib/message-queue/mq-connector";
+import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -87,6 +88,25 @@ export default class PostService {
 		}
 
 		return db.post.update({where: {id: postId}, data: {likes: post.likes - 1}});
+	}
+
+	async increaseViews(postId: string, authId: string): Promise<Post> {
+		const THROTTLE_SECONDS = 30 * 60; // 30 minutes
+		const redisKey = `view:${postId}:${authId}`;
+
+		const alreadyViewed: boolean = await redisExist(redisKey);
+
+		if (alreadyViewed) {
+			throw Error('View already counted recently');
+		}
+
+		const post: Post = await db.post.findFirstOrThrow({where: {id: postId}});
+		post.views += 1;
+
+		await db.post.update({where: {id: postId}, data: {views: post.views}});
+		await redisSetExpire(redisKey, THROTTLE_SECONDS, true);
+
+		return post;
 	}
 
 	updatePostFromQueue(id: string, updateData: {status: PostStatus, duration?: number}): Promise<Post> {

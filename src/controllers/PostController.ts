@@ -37,5 +37,10 @@ export default class PostController  extends ResBaseController{
 		return this.resSuccess(res, await this.service.disLikePost(req.params.id, req.query.authId))
 	}
 
+	@Put("/:id/views")
+	async increaseView(req: Request<{id: string}, null , null, {authId: string}>, res: Response) {
+		return this.resSuccess(res, await this.service.increaseViews(req.params.id, req["auth"].id))
+	}
+
 };
 

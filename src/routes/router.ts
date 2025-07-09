@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import "reflect-metadata"
-import {Router} from "express";
+import {NextFunction, Request, Response, Router} from "express";
 import {AutoRegisterInt} from "../index";
 
 abstract class MainLoad {
@@ -12,7 +12,12 @@ abstract class MainLoad {
 	
 	protected constructor(private router: Router, private controllerPath: string[], private logger: boolean = false) {
 		this.register().then(()=>{
-			this.loadRoutes();
+			try {
+				this.loadRoutes();
+
+			}catch (e) {
+				console.log("error");
+			}
 		});
 	}
 	
@@ -63,6 +68,7 @@ abstract class MainLoad {
 		return new Promise((resolve, reject) => {
 			try {
 				const methods: string[] = Object.getOwnPropertyNames(classInstance.constructor.prototype);
+				console.log(classInstance);
 				methods.forEach((methodName: string) => {
 					//const router = Reflect.getMetadata('router', controllerInstance.constructor);
 					const prefix        = Reflect.getMetadata('prefix', classInstance.constructor);
@@ -88,16 +94,15 @@ abstract class MainLoad {
 	}
 	
 	private loadRoutes() {
-		
-		this.routesWithoutMiddleware.forEach(obj1 => {
-			this.router[obj1.method](obj1.path, obj1.function);
-		});
-		
-		this.routesWithMiddleware.forEach(obj2 => {
-			this.router.use(obj2.path, obj2.middleware);
-			this.router[obj2.method](obj2.path, obj2.function);
-		});
-		
+		for (const route of this.routesWithoutMiddleware ) {
+			this.router[route.method](route.path, resolveRoute(route.function));
+		}
+
+		for (const route of this.routesWithMiddleware ) {
+			this.router.use(route.path, resolveRoute(route.middleware));
+			this.router[route.method](route.path, resolveRoute(route.function));
+		}
+
 		if (this.logger) {
 			const stacks = this.router.stack;
 			stacks.forEach((layer, index: number) => {
@@ -107,6 +112,14 @@ abstract class MainLoad {
 				}
 			});
 		}
+	}
+}
+
+function resolveRoute(callBack: Function) {
+	return function (req: Request, res: Response, next: NextFunction) {
+		Promise.resolve(callBack(req, res, next)).catch(next).then(data=> {
+			res.status(200).json(data);
+		});
 	}
 }
 
@@ -120,7 +133,5 @@ export default class AutoRegisterController extends MainLoad implements AutoRegi
 	getAllRegisterRoutes(): string[] {
 		return this.routes;
 	}
-	
-	
 }
 
