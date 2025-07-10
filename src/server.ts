@@ -2,7 +2,7 @@ import createHttpError from "http-errors";
 import express, {Express, Router} from "express";
 import path from "path";
 import cookieParser from "cookie-parser";
-import AutoRegisterControllers from "./index";
+import AutoRegisterControllers from "@lib/routing-controller";
 import * as process from "process";
 import dotenv from "dotenv";
 import {AuthMiddleware} from "@config/middlewares/auth.middleware";
@@ -31,16 +31,28 @@ app.use(AuthMiddleware)
 app.use(router);
 
 //AutoRegisterControllers({router, logging: true, controllerPath: [OtherController/*, UserController, StreamController,*/, path.join(__dirname, "controllers/*.js")]});
-AutoRegisterControllers({router, logging: false, controllerPath: [path.join(__dirname, "controllers/*.js")]});
+
+router.post("/api/uncatch", function (req, res,next) {
+    console.log(req.body);
+    next(new Error("Not Found"));
+})
+
+AutoRegisterControllers({
+    router,
+    logging: true,
+    controllerPath: [path.join(__dirname, "controllers/*.js")]
+});
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
     next(createHttpError(404));
+
 });
 
 // error handler
 app.use(function(err, req, res, next) {
-    console.warn("[Global interceptor]:", err.code, err.message);
+    console.warn("[Global interceptor]:", err.code, err.message, err);
     // set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -51,7 +63,7 @@ app.use(function(err, req, res, next) {
 });
 
 app.listen(port, async function (){
-    await connectRabbitMQ();
-    await new RedisServer().connect();
+    // await connectRabbitMQ();
+    // await new RedisServer().connect();
     console.log("server is running on port:" + "http://localhost:"+port);
 })
