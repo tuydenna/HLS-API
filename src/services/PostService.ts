@@ -6,7 +6,12 @@ import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
 
 export default class PostService {
 	async getAll(filter = undefined) {
-		return db.post.findMany({where: filter, include: {author: true, video: true}});
+		return db.post.findMany({
+			where: filter,
+			include: {author: true, video: true},
+			take: 10,
+			orderBy: {createdAt: "asc"}
+		});
 	}
 	
 	async getOne(id: string, userId: string | undefined): Promise<Post> {

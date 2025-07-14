@@ -1,10 +1,10 @@
-import {IErrorInterceptor, IResponseInterceptor} from "@lib/routing-controller/types/interceptor";
+import {IResponseInterceptor} from "express-router-controller-khmer";
 import {Request, Response} from "express";
 
-class ResponseInterceptor implements IResponseInterceptor {
+export default class ResponseInterceptor implements IResponseInterceptor {
 
-    response(data: any, req: Request, res: Response): Promise<any> {
-        return Promise.resolve(undefined);
+    response(data: any, req: Request, res: Response) {
+        res.json({data});
     }
 
 }

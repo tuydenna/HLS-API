@@ -1,6 +1,6 @@
 import {Get, Prefix} from "express-router-controller-khmer";
 import fs, {ReadStream} from "fs";
-import {getStorageLink, storage_path} from "@constant/path";
+import {getStorageLink} from "@constant/path";
 import {Request, Response} from "express"
 import FileService from "../services/FileService";
 import {File} from "@prisma/client"
@@ -64,10 +64,8 @@ export default class StreamController {
 			}
 
 			const playlistPath: string = getStorageLink(video.dirPath, "/playlist.json");
-			console.log("playlistPath", playlistPath);
 			const currentTime: number = +req.params.currentTime;
 			const playlist: IPlaylist = JSON.parse(fs.readFileSync(playlistPath).toString());
-			console.log("segmentPlaylist", playlist);
 			let totalTime: number = 0, currentSegment: ISegmentPlaylist;
 
 			for (const seg of playlist.segments) {

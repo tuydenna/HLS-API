@@ -6,6 +6,7 @@
     "start": "node ./build/server.js",
     "dev": "tsc && (concurrently \"npx tsc --watch\" \"tsc-alias -w\" \"nodemon -q ./build/server.js\")",
     "seed": "node ./build/database/seeders/user-seeder.js",
+    "seed:post": "node ./build/database/seeders/post-seeder.js",
     "push": "npx prisma db push",
     "build": "tsc && tsc-alias",
     "mq-worker": "node ./build/lib/message-queue/worker.js"
@@ -22,8 +23,7 @@
     "dotenv": "^16.4.5",
     "ejs": "~2.6.1",
     "express": "~4.16.1",
-    "express-router-controller-khmer": "^1.1.2",
-    "ffmpeg": "^0.0.4",
+    "express-router-controller-khmer": "^1.2.3",
     "google-protobuf": "^3.21.4",
     "http-errors": "~1.6.3",
     "jsonwebtoken": "^9.0.2",
@@ -31,8 +31,7 @@
     "multer": "^1.4.5-lts.1",
     "protoc-gen-js": "^3.21.2",
     "redis": "^5.6.0",
-    "reflect-metadata": "^0.1.13",
-    "tsc-alias": "^1.8.16"
+    "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.7",
@@ -46,6 +45,7 @@
     "nodemon": "^3.0.2",
     "prisma": "^5.18.0",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.5.4"
   }
 }

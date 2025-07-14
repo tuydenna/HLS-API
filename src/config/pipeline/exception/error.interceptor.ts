@@ -1,4 +1,4 @@
-import {IErrorInterceptor} from "@lib/routing-controller/types/interceptor";
+import {IErrorInterceptor} from "express-router-controller-khmer";
 import {Request, Response} from "express";
 
 class ErrorInterceptor implements IErrorInterceptor {

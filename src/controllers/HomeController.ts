@@ -1,4 +1,4 @@
-import {Get, Prefix} from "../config/ExpressMethod";
+import {Get, Prefix} from "express-router-controller-khmer";
 import PostService from "../services/PostService";
 
 @Prefix('')
