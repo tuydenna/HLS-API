@@ -1,8 +1,8 @@
-import {Get, Prefix} from "express-router-controller-khmer";
+import {Get, Param, Prefix, Req, Res} from "express-router-controller-khmer";
 import fs, {ReadStream} from "fs";
 import {getStorageLink} from "@constant/path";
 import {Request, Response} from "express"
-import FileService from "../services/FileService";
+import FileService from "@services/FileService";
 import {File} from "@prisma/client"
 import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 
@@ -10,7 +10,7 @@ import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 export default class StreamController {
 
 	@Get('/:fileId/:segmentFile')
-	async streamSegmentFile(req: Request, res: Response) {
+	async streamSegmentFile(@Req() req: Request, @Res() res: Response) {
 		let segmentChunk: ReadStream;
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
@@ -55,16 +55,16 @@ export default class StreamController {
 	}
 
 	@Get('/seeks/:fileId/:currentTime')
-	async streamSeekingSegmentFile(req: Request, res: Response) {
+	async streamSeekingSegmentFile(@Param("fileId") fileId: string, @Param("currentTime") currentTimeP: string, @Req() req: Request, @Res() res: Response) {
 		try {
-			const video: File | null = await new FileService().getOne(req.params.fileId);
+			const video: File | null = await new FileService().getOne(fileId);
 
 			if (!video) {
 				throw Error("File not found!")
 			}
 
 			const playlistPath: string = getStorageLink(video.dirPath, "/playlist.json");
-			const currentTime: number = +req.params.currentTime;
+			const currentTime: number = +currentTimeP;
 			const playlist: IPlaylist = JSON.parse(fs.readFileSync(playlistPath).toString());
 			let totalTime: number = 0, currentSegment: ISegmentPlaylist;
 

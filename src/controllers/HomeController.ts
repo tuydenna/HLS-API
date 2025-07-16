@@ -1,5 +1,5 @@
 import {Get, Prefix} from "express-router-controller-khmer";
-import PostService from "../services/PostService";
+import PostService from "@services/PostService";
 
 @Prefix('')
 export default class HomeController {

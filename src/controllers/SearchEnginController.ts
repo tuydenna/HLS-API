@@ -1,5 +1,4 @@
-import {Request, Response} from "express";
-import {Prefix, Get} from "express-router-controller-khmer";
+import {Prefix, Get, Param, Query} from "express-router-controller-khmer";
 import ResBaseController from "@controllers/ResBaseController";
 import SearchEnginService from "@services/SearchEnginService";
 
@@ -8,13 +7,13 @@ export default class SearchEnginController extends ResBaseController {
 	private searchEnginService: SearchEnginService = new SearchEnginService();
 
 	@Get("/:searchKey/autocompletes")
-	async searchAutocompletes(req: Request, res: Response): Promise<any> {
-		return this.searchEnginService.searchAutocompletes(req.params.searchKey);
+	async searchAutocompletes(@Param("searchKey") searchKey: string): Promise<any> {
+		return this.searchEnginService.searchAutocompletes(searchKey);
 	}
 
 	@Get("/posts")
-	async searchPosts(req: Request, res: Response): Promise<any> {
-		return this.searchEnginService.searchPosts(req.query);
+	async searchPosts(@Query() filter): Promise<any> {
+		return this.searchEnginService.searchPosts(filter);
 	}
 };
 

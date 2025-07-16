@@ -1,9 +1,9 @@
 // UserController.ts
 import { Request, Response } from 'express';
 import {Middleware, Get, Prefix} from 'express-router-controller-khmer';
-import authMiddleware from "../config/AuthMiddleware";
+import authMiddleware from "@config/AuthMiddleware";
 
-@Prefix("")
+@Prefix("s")
 export default class ClientController {
 	
 	@Get('/clients')

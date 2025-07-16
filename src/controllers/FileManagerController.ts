@@ -1,19 +1,20 @@
 import * as crypto from "crypto";
 import {Request, Response} from "express";
 import StorageEngine from "@services/StorageEngine";
-import {Prefix, Post} from "express-router-controller-khmer";
+import {Prefix, Post, Res, Req} from "express-router-controller-khmer";
 import fs, {WriteStream} from "fs";
 import {avatar_path, storage_path, thumbnail_path, video_path} from "@constant/path";
 import db from "@config/database/db";
 import ResBaseController from "@controllers/ResBaseController";
 import UserService from "@services/UserService";
 import {User} from "@prisma/client";
+import storageEngine from "@services/StorageEngine";
 
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
 
 	@Post("/thumbnail")
-	async uploadThumbnail(req: Request, res: Response): Promise<any> {
+	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const {src, fileName} = this.getFilePath(req, thumbnail_path);
 		try {
 			await this.writeStream(req, src);
@@ -26,7 +27,7 @@ export default class FileManagerController extends ResBaseController{
 	}
 
 	@Post("/video")
-	async uploadVideoStream(req: Request, res: Response): Promise<any> {
+	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const user: User = await new UserService().getOne(req["auth"].id);
 		const outputDir = video_path + user.userDir + "/" + crypto.randomUUID()
 		const fullOutputDir = storage_path + outputDir;
@@ -47,13 +48,20 @@ export default class FileManagerController extends ResBaseController{
 			}
 		} catch (e) {
 			console.warn("[File Upload]: ", e);
-			StorageEngine.remove(src);
+			if (fs.existsSync(fullOutputDir)) {
+				fs.rm(src, function (err) {
+					if (!err) {
+						fs.rmSync(fullOutputDir, {recursive: true, force: true});
+					}
+				})
+			}
 			return this.resError(res, e.message);
 		}
 	}
 
+
 	@Post("/avatar")
-	async uploadAvatar(req: Request, res: Response): Promise<any> {
+	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const {src, fileName} = this.getFilePath(req, avatar_path);
 		try {
 			await this.writeStream(req, src);

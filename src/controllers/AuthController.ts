@@ -7,19 +7,21 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {getEnv} from "@utils/index";
 import {StringValue} from "ms";
+import {Body, Res} from "express-router-controller-khmer";
 
 @Prefix("/api/authentications")
 export default class AuthController extends ResBaseController {
     private readonly userService: UserService = new UserService();
 
     @Post("/login")
-    async login(req: Request, res: Response) {
+    async login(@Body() data: {username: string, password: string}, @Res() res: Response) {
         try {
-            const auth: User = await this.userService.getOneByUsername(req.body.username);
+            console.log(data, res);
+            const auth: User = await this.userService.getOneByUsername(data.username);
             if (!auth) {
                 return this.resError(res, "Invalid credentials", 400);
             }
-            const isCorrectPass:boolean = await bcrypt.compare( req.body.password, auth.password);
+            const isCorrectPass:boolean = await bcrypt.compare(data.password, auth.password);
             if (!isCorrectPass) {
                 return this.resError(res, "Invalid credentials", 400);
             }

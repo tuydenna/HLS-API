@@ -1,4 +1,4 @@
-import {Get, Post, Put, Prefix} from "express-router-controller-khmer";
+import {Get, Post, Put, Prefix, Res, Body, Param, Req} from "express-router-controller-khmer";
 import PostService from "@services/PostService";
 import ResBaseController from "@controllers/ResBaseController";
 import {Request, Response} from "express";
@@ -9,22 +9,22 @@ export default class PostController  extends ResBaseController{
 	private readonly service: PostService = new PostService();
 
 	@Get("/")
-	async getAll(req: Request, res: Response) {
+	async getAll(@Res() res: Response) {
 		return this.resSuccess(res, await this.service.getAll())
 	}
 
 	@Post("/")
-	async create(req: Request, res: Response) {
+	async create(@Body() data,  @Res() res: Response) {
 		try {
-			return this.resSuccess(res, await this.service.create(req.body));
+			return this.resSuccess(res, await this.service.create(data));
 		} catch (e) {
 			return this.resError(res, e.message)
 		}
 	}
 
 	@Get("/:id")
-	async getOne(req: Request, res: Response) {
-		return this.resSuccess(res, await this.service.getOne(req.params.id, req["auth"].id));
+	async getOne(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.getOne(id, req["auth"].id));
 	}
 
 	@Put("/:id/likes")

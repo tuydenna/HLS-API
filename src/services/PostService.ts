@@ -42,7 +42,6 @@ export default class PostService {
 			},
 			include: {author: true, video: true}
 		});
-
 		sendMQ({...post.video, postId: post.id});
 		return post
 	}

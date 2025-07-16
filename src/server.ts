@@ -32,17 +32,12 @@ dotenv.config();
     app.use(AuthMiddleware)
     app.use(router);
 
-    router.post("/api/uncatch", function (req, res,next) {
-        next(new Error("Not Found"));
-    })
-
      await AutoRegisterControllers({
         router,
         logging: true,
         controllerPath: [path.join(__dirname, "controllers/*.js")],
          responseInterceptor: new ResponseInterceptor()
     });
-
 
     app.listen(port, async function (){
         // await connectRabbitMQ();

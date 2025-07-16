@@ -1,6 +1,5 @@
-import ResBaseController from "@controllers/ResBaseController";
 
-export default class AuthService extends ResBaseController {
+export default class AuthService  {
 
 
 	login(data) {
