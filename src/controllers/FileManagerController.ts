@@ -4,7 +4,7 @@ import StorageEngine from "@services/StorageEngine";
 import {Prefix, Post, Res, Req} from "express-router-controller-khmer";
 import fs, {WriteStream} from "fs";
 import {avatar_path, storage_path, thumbnail_path, video_path} from "@constant/path";
-import db from "@config/database/db";
+import db from "@lib/prisma/db-connector";
 import ResBaseController from "@controllers/ResBaseController";
 import UserService from "@services/UserService";
 import {User} from "@prisma/client";

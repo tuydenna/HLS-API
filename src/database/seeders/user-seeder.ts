@@ -1,4 +1,4 @@
-import db from "@config/database/db";
+import db from "@lib/prisma/db-connector";
 import {faker} from "@faker-js/faker";
 
 (async function () {

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import db from "@config/database/db";
+import db from "@lib/prisma/db-connector";
 import {faker} from "@faker-js/faker";
-import {Put,Get, Post, Prefix } from "express-router-controller-khmer";
+import {Put, Get, Post, Prefix, Res} from "express-router-controller-khmer";
 import UserService from "@services/UserService";
 import ResBaseController from "@controllers/ResBaseController";
 
@@ -12,10 +12,10 @@ export default class UserController extends ResBaseController{
 
 	@Get('/')
 	//@AuthMiddleware()
-	async getAllUsers(req: Request, res: Response) {
+	async getAllUsers(@Res() res: Response) {
 		return res.send(await db.user.findMany());
 	}
-	
+
 	@Get('/:id')
 	getUserById(req: Request, res: Response) {
 		const userId = req.params.id;
@@ -26,7 +26,7 @@ export default class UserController extends ResBaseController{
 	async create(req: Request, res: Response) {
 		return this.resSuccess(res,  await this.service.create(req.body))
 	}
-	
+
 	@Put('/:id')
 	async update(req: Request, res: Response) {
 		const user = await db.user.update({

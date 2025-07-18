@@ -1,4 +1,4 @@
-import express, {Express, Router} from "express";
+import express , {Express, Router} from "express";
 import path from "path";
 import cookieParser from "cookie-parser";
 import {AutoRegisterControllers} from "express-router-controller-khmer";

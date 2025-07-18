@@ -16,7 +16,6 @@ export default class AuthController extends ResBaseController {
     @Post("/login")
     async login(@Body() data: {username: string, password: string}, @Res() res: Response) {
         try {
-            console.log(data, res);
             const auth: User = await this.userService.getOneByUsername(data.username);
             if (!auth) {
                 return this.resError(res, "Invalid credentials", 400);
@@ -33,6 +32,7 @@ export default class AuthController extends ResBaseController {
 
             return this.resSuccess(res, auth);
         } catch (error) {
+            console.log(error);
             return this.resError(res, error);
         }
     }

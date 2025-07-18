@@ -6,7 +6,7 @@
     "start": "node ./build/server.js",
     "dev": "tsc && (concurrently \"npx tsc --watch\" \"tsc-alias -w\" \"nodemon -q ./build/server.js\")",
     "seed": "node ./build/database/seeders/user-seeder.js",
-    "seed:post": "node ./build/database/seeders/post-seeder.js",
+    "seed:post": "node ./build/database/seeders/post-seeder.js --loop=10000",
     "push": "npx prisma db push",
     "build": "tsc && tsc-alias",
     "mq-worker": "node ./build/lib/message-queue/worker.js"

@@ -1,4 +1,4 @@
-import db from "@config/database/db";
+import db from "@lib/prisma/db-connector";
 import {LikePost, Post, PostStatus} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 import {sendMQ} from "@lib/message-queue/mq-connector";

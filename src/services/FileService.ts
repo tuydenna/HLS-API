@@ -1,4 +1,4 @@
-import db from "../config/database/db";
+import db from "@lib/prisma/db-connector";
 import {File} from "@prisma/client";
 
 export default class FileService {

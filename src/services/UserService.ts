@@ -1,4 +1,4 @@
-import db from "@config/database/db";
+import db from "@lib/prisma/db-connector";
 import {Prisma, User} from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
