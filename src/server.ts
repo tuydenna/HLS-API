@@ -9,6 +9,7 @@ import {coresMiddleware} from "@config/middlewares/cores.middleware";
 import {connectRabbitMQ} from "@lib/message-queue/mq-connector";
 import RedisServer from "@lib/redis/redis-server";
 import ResponseInterceptor from "@config/pipeline/reponse/response.interceptor";
+import compression from "compression";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ dotenv.config();
     app.use(express.json({limit: '5mb'}));
     app.use(express.urlencoded({ extended: false}));
     app.use(cookieParser());
+    app.use(compression());
 
     app.use(express.static(path.join('public')));
     app.use(express.static(path.join('storages')));
@@ -33,9 +35,10 @@ dotenv.config();
     app.use(router);
 
      await AutoRegisterControllers({
-        router,
-        logging: true,
-        controllerPath: [path.join(__dirname, "controllers/*.js")],
+         router,
+         logging: true,
+         classTransform: false,
+         controllerPath: [path.join(__dirname, "controllers/*.js")],
          responseInterceptor: new ResponseInterceptor()
     });
 

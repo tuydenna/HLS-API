@@ -10,6 +10,7 @@
     "resolveJsonModule": true,
     "sourceMap": false,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "paths": {
       "@controllers/*": ["./controllers/*"],
       "@services/*": ["./services/*"],

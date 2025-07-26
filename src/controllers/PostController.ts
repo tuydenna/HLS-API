@@ -28,18 +28,18 @@ export default class PostController  extends ResBaseController{
 	}
 
 	@Put("/:id/likes")
-	async likePost(req: Request<{id: string}, null , null, {authId: string}>, res: Response) {
-		return this.resSuccess(res, await this.service.likePost(req.params.id, req.query.authId))
+	async likePost(@Param("id")  id: string, @Req() req: Request, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.likePost(id, req["auth"].id))
 	}
 	
 	@Put("/:id/dislikes")
-	async disLikePost(req: Request<{id: string}, null , null, {authId: string}>, res: Response) {
-		return this.resSuccess(res, await this.service.disLikePost(req.params.id, req.query.authId))
+	async disLikePost(@Param("id")  id: string, @Req() req: Request, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.disLikePost(id, req["auth"].id));
 	}
 
 	@Put("/:id/views")
-	async increaseView(req: Request<{id: string}, null , null, {authId: string}>, res: Response) {
-		return this.resSuccess(res, await this.service.increaseViews(req.params.id, req["auth"].id))
+	async increaseView(@Param("id")  id: string, @Req() req: Request, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.increaseViews(id, req["auth"].id))
 	}
 
 };
