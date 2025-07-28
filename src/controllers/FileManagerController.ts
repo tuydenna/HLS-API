@@ -8,12 +8,11 @@ import db from "@lib/prisma/db-connector";
 import ResBaseController from "@controllers/ResBaseController";
 import UserService from "@services/UserService";
 import {User} from "@prisma/client";
-import storageEngine from "@services/StorageEngine";
 
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
 
-	@Post("/thumbnail")
+	@Post("/thumbnails")
 	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const {src, fileName} = this.getFilePath(req, thumbnail_path);
 		try {
@@ -26,7 +25,7 @@ export default class FileManagerController extends ResBaseController{
 		}
 	}
 
-	@Post("/video")
+	@Post("/videos")
 	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const user: User = await new UserService().getOne(req["auth"].id);
 		const outputDir = video_path + user.userDir + "/" + crypto.randomUUID()
@@ -60,7 +59,7 @@ export default class FileManagerController extends ResBaseController{
 	}
 
 
-	@Post("/avatar")
+	@Post("/avatars")
 	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const {src, fileName} = this.getFilePath(req, avatar_path);
 		try {

@@ -43,8 +43,8 @@ dotenv.config();
     });
 
     app.listen(port, async function (){
-        // await connectRabbitMQ();
-        // await new RedisServer().connect();
+        await connectRabbitMQ();
+        await new RedisServer().connect();
         console.log("server is running on port:" + "http://localhost:"+port);
     })
 })()
