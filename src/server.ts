@@ -10,6 +10,7 @@ import {connectRabbitMQ} from "@lib/message-queue/mq-connector";
 import RedisServer from "@lib/redis/redis-server";
 import ResponseInterceptor from "@config/pipeline/reponse/response.interceptor";
 import compression from "compression";
+import morgan from "morgan";
 
 dotenv.config();
 
@@ -26,6 +27,12 @@ dotenv.config();
     app.use(express.urlencoded({ extended: false}));
     app.use(cookieParser());
     app.use(compression());
+
+    if (process.env.NODE_ENV === "production") {
+        app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :response-time ms'));
+    } else {
+        app.use(morgan("dev"));
+    }
 
     app.use(express.static(path.join('public')));
     app.use(express.static(path.join('storages')));

@@ -1,5 +1,5 @@
 import ResBaseController from "@controllers/ResBaseController";
-import {Post, Prefix, Put} from "express-router-controller-khmer";
+import {Post, Prefix, Put, Req} from "express-router-controller-khmer";
 import {User} from "@prisma/client";
 import UserService from "@services/UserService";
 import {Response, Request} from "express";
@@ -8,32 +8,21 @@ import jwt from "jsonwebtoken";
 import {getEnv} from "@utils/index";
 import {StringValue} from "ms";
 import {Body, Res} from "express-router-controller-khmer";
+import LoginRateLimiter from "@lib/rate-limit/login-rate-limiter";
+import RedisServer from "@lib/redis/redis-server";
+import {ILoginDto} from "@interfaces/dto/login";
 
 @Prefix("/api/authentications")
 export default class AuthController extends ResBaseController {
     private readonly userService: UserService = new UserService();
 
     @Post("/login")
-    async login(@Body() data: {username: string, password: string}, @Res() res: Response) {
+    async login(@Body() data: ILoginDto, @Req() req: Request, @Res() res: Response) {
         try {
-            const auth: User = await this.userService.getOneByUsername(data.username);
-            if (!auth) {
-                return this.resError(res, "Invalid credentials", 400);
-            }
-            const isCorrectPass:boolean = await bcrypt.compare(data.password, auth.password);
-            if (!isCorrectPass) {
-                return this.resError(res, "Invalid credentials", 400);
-            }
-
-            const token: string = jwt.sign({authId: auth.id}, getEnv("JWT_SECRET") || "", {expiresIn: getEnv("JWT_EXPIRE_IN") as StringValue});
-
-            await this.userService.update({id: auth.id}, {token});
-            this.setHeaderAuthCookie(res, token);
-
-            return this.resSuccess(res, auth);
-        } catch (error) {
-            console.log(error);
-            return this.resError(res, error);
+            const loginRateLimiter = new LoginRateLimiter(RedisServer.client);
+            return this.resSuccess(res, await loginRateLimiter.use(data, req, res, this.authorizeUser.bind(this)));
+        } catch (e) {
+            return this.resError(res, e.message, e.code);
         }
     }
 
@@ -49,7 +38,7 @@ export default class AuthController extends ResBaseController {
     }
 
     @Put("/logout")
-    logout(req: Request, res: Response) {
+    logout(@Req() req: Request, @Res() res: Response) {
         res.clearCookie('auth_token');
         return this.resSuccess(res, "logout success!");
     }
@@ -61,5 +50,25 @@ export default class AuthController extends ResBaseController {
             sameSite: 'strict',  // Optional: helps prevent CSRF
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
+    }
+
+    protected async authorizeUser(data: ILoginDto, res: Response): Promise<{
+        isLoggedIn: boolean,
+        auth: User | null
+    }> {
+        const auth: User = await this.userService.getOneByUsername(data.username);
+        if (!auth) {
+            return {isLoggedIn: false, auth};
+        }
+        const isCorrectPass: boolean = await bcrypt.compare(data.password, auth.password);
+        if (!isCorrectPass) {
+            return {isLoggedIn: false, auth};
+        }
+
+        const token: string = jwt.sign({authId: auth.id}, getEnv("JWT_SECRET") || "", {expiresIn: getEnv("JWT_EXPIRE_IN") as StringValue});
+
+        await this.userService.update({id: auth.id}, {token});
+        this.setHeaderAuthCookie(res, token);
+        return {isLoggedIn: true, auth};
     }
 }

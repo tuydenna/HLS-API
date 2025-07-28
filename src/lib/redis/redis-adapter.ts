@@ -10,7 +10,7 @@ async function redisGet(key: string) {
 
 async function redisSetExpire(key: string, expire: number, value: any) {
     try {
-        return await RedisServer.client.setEx(key, expire, value);
+        return await RedisServer.client.setex(key, expire, value);
     }catch (e) {
         console.log(e.code);
         throw e

@@ -1,4 +1,5 @@
 import {Response} from "express";
+import SysLog from "@lib/logger/sys-log";
 
 export default class ResBaseController {
 	resSuccess(response: Response, data: any) {
@@ -6,7 +7,7 @@ export default class ResBaseController {
 	}
 
 	resError(response: Response, message: string = "internal error", code =500) {
-		console.error("[service error]:", message, code);
+		SysLog.error("[Internal Service]", message, code);
 		return response.status(code).json({message});
 	}
 }
