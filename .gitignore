@@ -3,3 +3,4 @@
 /build
 /storages
 pm2.config.js
+*.txt
