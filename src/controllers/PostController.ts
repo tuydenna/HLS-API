@@ -8,7 +8,7 @@ export default class PostController  extends ResBaseController{
 	
 	private readonly service: PostService = new PostService();
 
-	@Get("/")
+	@Get("")
 	async getAll(@Res() res: Response) {
 		return this.resSuccess(res, await this.service.getAll())
 	}
