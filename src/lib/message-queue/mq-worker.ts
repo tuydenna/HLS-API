@@ -10,7 +10,7 @@ dotenv.config();
 
 const exchangeKey = 'FRAGMENT_UPLOAD';
 
-async function startWorker() {
+async function MQWorker() {
     const connection: ChannelModel = await amqplib.connect(process.env.RABBITMQ_URL);
     const channel: Channel = await connection.createChannel();
     await channel.assertExchange(exchangeKey, "fanout", {durable: false});
@@ -41,4 +41,4 @@ async function startWorker() {
     console.log('Worker listening for fragment upload jobs...');
 }
 
-startWorker();
+MQWorker();
