@@ -43,7 +43,8 @@ export default class FfmpegLib {
      saveToHLS(outputDir: string) {
         const playlistOutput: string =  path.join(outputDir ,"/playlist.m3u8");
         const segmentOutput: string= path.join(outputDir ,"/seg_%d.m4s");
-        const initOutput: string= path.join(outputDir ,"/init.mp4");
+        const initFileName: string = "init.mp4";
+        const initOutput: string= path.join(outputDir , "/", initFileName);
 
         this.commands.push("-f", "hls");
         this.commands.push("-hls_time", "6");
@@ -51,7 +52,7 @@ export default class FfmpegLib {
         this.commands.push("-hls_segment_type ", "fmp4");
         this.commands.push("-hls_flags", "independent_segments");
         this.commands.push("-hls_segment_filename ", segmentOutput);
-        this.commands.push("-hls_fmp4_init_filename", initOutput);
+        this.commands.push("-hls_fmp4_init_filename", initFileName);
         this.commands.push(playlistOutput);
         this.save();
         return {playlistOutput, segmentOutput, initOutput};
