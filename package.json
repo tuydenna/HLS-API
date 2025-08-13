@@ -9,7 +9,7 @@
     "seed:post": "node ./build/database/seeders/post-seeder.js --loop=10000",
     "push": "npx prisma db push",
     "build": "tsc && tsc-alias",
-    "mq-worker": "node ./build/lib/message-queue/worker.js"
+    "mq-worker": "node ./build/lib/message-queue/mq-worker.js"
   },
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
