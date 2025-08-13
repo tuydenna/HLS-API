@@ -13,7 +13,7 @@ async function connectRabbitMQ() {
         await MQ.assertExchange(exchangeKey, "fanout", {durable: false});
         SysLog.success("[MQ Service]", "is connected successfully.");
     } catch (e) {
-        SysLog.error("[MQ Service]", "failed to connect MQ Service!", e);
+        SysLog.error("[MQ Service]", "failed to connect MQ Service!");
 
     }
 }
