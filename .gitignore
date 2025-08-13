@@ -5,5 +5,5 @@
 pm2.config.js
 *.txt
 
-.env.*
+.env*
 !.env.example
