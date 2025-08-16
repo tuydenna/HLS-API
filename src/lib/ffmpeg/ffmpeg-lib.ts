@@ -1,5 +1,6 @@
 import path from "path";
 import {execSync} from "child_process";
+import {isWindowOS} from "@utils/index";
 
 export default class FfmpegLib {
     private commands: string[] = ["ffmpeg -i"]
@@ -52,7 +53,13 @@ export default class FfmpegLib {
         this.commands.push("-hls_segment_type ", "fmp4");
         this.commands.push("-hls_flags", "independent_segments");
         this.commands.push("-hls_segment_filename ", segmentOutput);
-        this.commands.push("-hls_fmp4_init_filename", initFileName);
+
+        // OS Config
+         if (isWindowOS()) {
+             this.commands.push("-hls_fmp4_init_filename", initOutput);
+         } else {
+             this.commands.push("-hls_fmp4_init_filename", initFileName);
+         }
         this.commands.push(playlistOutput);
         this.save();
         return {playlistOutput, segmentOutput, initOutput};

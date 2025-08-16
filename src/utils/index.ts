@@ -1,3 +1,5 @@
+import * as process from "node:process";
+
 function getEnv(key: string): string {
     try{
         return process.env[key];
@@ -7,4 +9,8 @@ function getEnv(key: string): string {
     }
 }
 
-export {getEnv};
+function isWindowOS(): boolean {
+    return process.platform === "win32";
+}
+
+export {getEnv, isWindowOS};

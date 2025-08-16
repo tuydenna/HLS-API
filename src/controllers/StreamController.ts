@@ -9,8 +9,51 @@ import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
 
+	@Get('/playlist/:fileId')
+	async getPlaylistFile(@Req() req: Request, @Res() res: Response) {
+		let segmentChunk: ReadStream;
+		try {
+			const video: File | null = await new FileService().getOne(req.params.fileId);
+			if (!video) {
+				throw Error("File not found!")
+			}
+			const api: string = "http://192.168.100.53:3080/api/streams/fmp4/"+video.id+"/";
+
+			const segmentFile = "playlist.m3u8";
+
+			const videoPath: string = getStorageLink(video.dirPath + "/" + segmentFile) ;
+			const videoSize: number = fs.statSync(videoPath).size;
+			segmentChunk = fs.createReadStream(videoPath);
+
+			if (!segmentFile){
+				console.error(segmentFile);
+				return res.status(400).send("Segment File is required!")
+			}
+
+			let playlist: Buffer | string = fs.readFileSync(videoPath);
+
+			playlist = playlist.toString()
+			playlist = playlist.replace(/(init.mp4)/g, api+"$1")
+			playlist = playlist.replace(/(seg_.*.m4s)/g, api+"$1")
+			playlist = Buffer.from(playlist)
+
+			res.setHeader("Content-Length", videoSize)
+			res.setHeader("Accept-Ranges", "bytes")
+			res.setHeader('Content-Type', 'application/vnd.apple.mpegurl')
+			res.send(playlist);
+
+		} catch (e) {
+			console.error(e);
+			if (e.code === "ENOENT") {
+				return res.status(404).json({message: "segment not found!"})
+			}
+			segmentChunk.close();
+			return res.status(500).json({message: "error: "+e.message})
+		}
+	}
+
 	@Get('/:fileId/:segmentFile')
-	async streamSegmentFile(@Req() req: Request, @Res() res: Response) {
+	async streamSegmentFile(@Param("segmentFile") segmentFile: string, @Req() req: Request, @Res() res: Response) {
 		let segmentChunk: ReadStream;
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
@@ -18,17 +61,17 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			const videoPath: string = getStorageLink(video.dirPath + "/" + req.params.segmentFile) ;
+			const videoPath: string = getStorageLink(video.dirPath + "/" + segmentFile) ;
 			const videoSize: number = fs.statSync(videoPath).size;
 			segmentChunk = fs.createReadStream(videoPath);
 
-			if (!req.params.segmentFile){
-				console.error(req.params.segmentFile);
+			if (!segmentFile){
+				console.error(segmentFile);
 				return res.status(400).send("Segment File is required!")
 			}
 
 			const headers = {
-				"X-Segment-Name":  req.params.segmentFile,
+				"X-Segment-Name":  segmentFile,
 				"Access-Control-Expose-Headers": "X-Segment-Name",
 				"Cache-Control": "max-age=1200",
 				"Accept-Ranges": "bytes",
@@ -82,7 +125,7 @@ export default class StreamController {
 
 			req.params.segmentFile = currentSegment.fileName;
 
-			return this.streamSegmentFile(req, res)
+			return this.streamSegmentFile(req.params.segmentFile, req, res)
 		} catch (e) {
 			console.error(e);
 			return res.status(500).json({message: "error: " + e.message})
