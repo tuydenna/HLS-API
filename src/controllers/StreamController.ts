@@ -5,37 +5,33 @@ import {Request, Response} from "express"
 import FileService from "@services/FileService";
 import {File} from "@prisma/client"
 import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
+import {formatM3u8APIEndPoint} from "../helper/stream-helper";
+import {getEnv} from "@utils/index";
 
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
 
-	@Get('/playlist/:fileId')
+	@Get('/:fileId/playlist')
 	async getPlaylistFile(@Req() req: Request, @Res() res: Response) {
-		let segmentChunk: ReadStream;
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
 			if (!video) {
 				throw Error("File not found!")
 			}
-			const api: string = "http://192.168.100.53:3080/api/streams/fmp4/"+video.id+"/";
 
+			const api: string = getEnv("STREAM_ENDPOINT") + "/"+video.id+"/";
 			const segmentFile = "playlist.m3u8";
 
 			const videoPath: string = getStorageLink(video.dirPath + "/" + segmentFile) ;
 			const videoSize: number = fs.statSync(videoPath).size;
-			segmentChunk = fs.createReadStream(videoPath);
 
 			if (!segmentFile){
 				console.error(segmentFile);
 				return res.status(400).send("Segment File is required!")
 			}
 
-			let playlist: Buffer | string = fs.readFileSync(videoPath);
-
-			playlist = playlist.toString()
-			playlist = playlist.replace(/(init.mp4)/g, api+"$1")
-			playlist = playlist.replace(/(seg_.*.m4s)/g, api+"$1")
-			playlist = Buffer.from(playlist)
+			let playlist: Buffer = fs.readFileSync(videoPath);
+			playlist = formatM3u8APIEndPoint(playlist, api);
 
 			res.setHeader("Content-Length", videoSize)
 			res.setHeader("Accept-Ranges", "bytes")
@@ -47,7 +43,6 @@ export default class StreamController {
 			if (e.code === "ENOENT") {
 				return res.status(404).json({message: "segment not found!"})
 			}
-			segmentChunk.close();
 			return res.status(500).json({message: "error: "+e.message})
 		}
 	}
