@@ -1,0 +1,3 @@
+const CHANNEL_FOLDER_PREFIX = "/channel-";
+
+export {CHANNEL_FOLDER_PREFIX}

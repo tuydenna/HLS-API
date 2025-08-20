@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 import {getEnv} from "@utils/index";
 import { StringValue } from "ms";
+import {CHANNEL_FOLDER_PREFIX} from "@constant/file-storage";
 
 export default class UserService {
 	async getOne(id: string): Promise<User> {
@@ -17,7 +18,7 @@ export default class UserService {
 	async create(data: User): Promise<User> {
 		try {
 			data.password = bcrypt.hashSync(data.password, 10);
-			data.userDir = "/channel-"+crypto.randomUUID();
+			data.userDir = CHANNEL_FOLDER_PREFIX + crypto.randomUUID();
 			const user: User = await db.user.create({data});
 			const token: string = jwt.sign({authId: user.id}, getEnv("JWT_SECRET") || "", {expiresIn: getEnv("JWT_EXPIRE_IN") as StringValue})
 			user.token = token;

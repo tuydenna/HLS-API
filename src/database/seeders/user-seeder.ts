@@ -1,5 +1,6 @@
 import db from "@lib/prisma/db-connector";
 import {faker} from "@faker-js/faker";
+import {CHANNEL_FOLDER_PREFIX} from "@constant/file-storage";
 
 (async function () {
 
@@ -8,29 +9,8 @@ import {faker} from "@faker-js/faker";
             name: faker.person.fullName(),
             email: "admin@gmail.com",
             password: "$2b$10$1W5gPQ6TfToMaDin7Nf1ze7aiNyFkb8hOI/g0IoT.Ghoq5qPq734S",
-            userDir: "/" + crypto.randomUUID(),
-            avatar: faker.image.avatarGitHub()
+            userDir: CHANNEL_FOLDER_PREFIX + crypto.randomUUID(),
+            avatar: "/avatars/5c5664c3-c5cb-4b32-8bdb-8536b5ebf8f8.png"
         }
     });
-
-    const file = await db.file.create({
-        data: {
-            size: +faker.commerce.price(),
-            dirPath: crypto.randomUUID(),
-            filePath: "din/song-1"
-        }
-    })
-
-    const post = await db.post.create({
-        data: {
-                authorId: user.id,
-                videoId: file.id,
-                slug: faker.string.sample(),
-                title: faker.music.songName(),
-                description: faker.person.bio(),
-                thumbnail: "/thumbnail/thumbnail-1724322681816-729526334.png"
-            }
-    });
-
-    await db.userPost.create({data: {userId: user.id, postId: post.id}})
 })()

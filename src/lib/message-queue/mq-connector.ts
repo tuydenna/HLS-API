@@ -23,6 +23,7 @@ function sendMQ(data: any) {
         MQ.publish(exchangeKey,"" ,Buffer.from(JSON.stringify(data)));
     } else {
         SysLog.error("[MQ Service]", "failed to connect MQ Service!");
+        throw new Error("failed to connect MQ Service!");
     }
 }
 

@@ -3,6 +3,9 @@ import {LikePost, Post, PostStatus} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 import {sendMQ} from "@lib/message-queue/mq-connector";
 import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
+import storageEngine from "@services/StorageEngine";
+import {getStorageLink} from "@constant/path";
+import sysLog from "@lib/logger/sys-log";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -35,21 +38,39 @@ export default class PostService {
 	}
 
 	async create(data: Post): Promise<Post> {
-		const post = await db.post.create({
-			data: {
-				...data,
-				slug: faker.lorem.slug()
-			},
-			include: {author: true, video: true}
-		});
-		sendMQ({...post.video, postId: post.id});
-		return post
+		let post;
+		try {
+			 post = await db.post.create({
+				data: {
+					...data,
+					slug: faker.lorem.slug()
+				},
+				include: {author: true, video: true}
+			});
+			sendMQ({...post.video, postId: post.id});
+			return post
+		} catch (error) {
+			// remove thumbnail
+			await this.rollBackPost(post);
+			throw error;
+		}
 	}
 
 	async getAllRelatedPosts(id: string) {
 		return db.post.findMany({where: {id: {not: id}}, include: {author: true, video: true}});
 	}
-	
+
+	private async rollBackPost(post) {
+		try {
+			await db.post.delete({where: {id: post.id}});
+			storageEngine.remove(getStorageLink(post.thumbnail));
+			storageEngine.remove(getStorageLink(post.video.dirPath), {recursive: true, force: true});
+		} catch (e) {
+			sysLog.error("rollback post", e)
+			throw new Error("rollback post is error");
+		}
+	}
+
 	async likePost(postId: string, userId: string): Promise<Post> {
 		const post: Post = await db.post.findFirstOrThrow({
 			where: {id: postId}

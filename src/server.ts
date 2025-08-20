@@ -35,10 +35,12 @@ dotenv.config();
     }
 
     app.use(express.static(path.join('public')));
-    app.use(express.static(path.join('storages')));
 
     app.use(coresMiddleware());
-    app.use(AuthMiddleware)
+    app.use(AuthMiddleware);
+
+    app.use("/storages", express.static(path.join('storages'), {dotfiles: "ignore", index: false}));
+
     app.use(router);
 
      await AutoRegisterControllers({

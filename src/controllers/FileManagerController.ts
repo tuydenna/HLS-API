@@ -58,7 +58,6 @@ export default class FileManagerController extends ResBaseController{
 		}
 	}
 
-
 	@Post("/avatars")
 	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const {src, fileName} = this.getFilePath(req, avatar_path);
@@ -73,7 +72,6 @@ export default class FileManagerController extends ResBaseController{
 		}
 	}
 
-	
 	private getFilePath(req: Request, folder: string, name: string = crypto.randomUUID()) {
 		const fileName = folder +"/"+ name +"."+ req.header("file-extension");
 		return  {src: storage_path + fileName, fileName};
@@ -93,9 +91,14 @@ export default class FileManagerController extends ResBaseController{
 				res(true)
 			});
 
+			req.on("close", () => {
+				file.destroy()
+				rej("client is aborting stream");
+			})
+
 			file.on("error", (err) => {
-				console.error("[write stream]:", err);
-				rej(false)
+				file.destroy()
+				rej("file stream is error");
 			})
 		})
 

@@ -1,8 +1,8 @@
-import fs from "fs";
+import fs, {RmOptions} from "fs";
 // import {upload} from "./Multer";
 //
-function remove(path: string) {
-	return fs.rmSync(path);
+function remove(path: string, options?: RmOptions) {
+	return fs.rmSync(path, options);
 }
 //
 // function get() {
