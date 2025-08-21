@@ -1,12 +1,17 @@
-import {Get, Post, Put, Prefix, Res, Body, Param, Req} from "express-router-controller-khmer";
+import {Get, Post, Put, Prefix, Res, Body, Param, Req, Delete} from "express-router-controller-khmer";
 import PostService from "@services/PostService";
 import ResBaseController from "@controllers/ResBaseController";
 import {Request, Response} from "express";
 
 @Prefix('/api/posts')
 export default class PostController  extends ResBaseController{
-	
+
 	private readonly service: PostService = new PostService();
+
+	@Get("/:id")
+	async getOne(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.getOne(id, req["auth"].id));
+	}
 
 	@Get("")
 	async getAll(@Res() res: Response) {
@@ -22,9 +27,9 @@ export default class PostController  extends ResBaseController{
 		}
 	}
 
-	@Get("/:id")
-	async getOne(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
-		return this.resSuccess(res, await this.service.getOne(id, req["auth"].id));
+	@Delete("/:id")
+	async delete(@Param("id") id: string, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.delete(id));
 	}
 
 	@Put("/:id/likes")

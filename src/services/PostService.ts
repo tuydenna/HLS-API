@@ -56,6 +56,15 @@ export default class PostService {
 		}
 	}
 
+	async delete(id: string,): Promise<string> {
+		const post = await db.post.findFirst({
+			where: {id},
+			include: {author: true, video: true}
+		});
+		await this.rollBackPost(post);
+		return "Deleted Successfully"
+	}
+
 	async getAllRelatedPosts(id: string) {
 		return db.post.findMany({where: {id: {not: id}}, include: {author: true, video: true}});
 	}
