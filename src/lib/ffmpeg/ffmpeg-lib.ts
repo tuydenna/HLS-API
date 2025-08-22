@@ -6,6 +6,7 @@ export default class FfmpegLib {
     private commands: string[] = ["ffmpeg -i"]
 
     constructor(inputFile: string) {
+        console.log("FfmpegLib", inputFile);
         this.commands.push(inputFile);
     }
 

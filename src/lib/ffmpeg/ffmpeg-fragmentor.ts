@@ -8,7 +8,9 @@ export default function fragmentMp4ToFMp4(inputFile: string, outputDir: string):
             .addVideoCodec("libx264")
             .addAudioCodec("aac")
             .addAudioBitRate("128k")
-            .addCommand("-map", "0")
+            // .addCommand("-map", "0")
+            .addCommand("-map", "0:v:0")
+            .addCommand("-map", "0:a:0")
             .addCommand("-preset", "veryfast")
             .addCommand("-crf", "23")
             .saveToHLS(outputDir);

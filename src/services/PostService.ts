@@ -6,6 +6,7 @@ import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
 import storageEngine from "@services/StorageEngine";
 import {getStorageLink} from "@constant/path";
 import sysLog from "@lib/logger/sys-log";
+import fs from "fs";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -71,9 +72,16 @@ export default class PostService {
 
 	private async rollBackPost(post) {
 		try {
+			await db.comment.deleteMany({where: {postId: post.id}});
+			await db.likePost.deleteMany({where: {postId: post.id, userId: post.authorId}});
 			await db.post.delete({where: {id: post.id}});
-			storageEngine.remove(getStorageLink(post.thumbnail));
-			storageEngine.remove(getStorageLink(post.video.dirPath), {recursive: true, force: true});
+			await db.file.delete({where: {id: post.videoId}});
+			if (fs.existsSync(getStorageLink(post.thumbnail))) {
+				storageEngine.remove(getStorageLink(post.thumbnail));
+			}
+			if (fs.existsSync(getStorageLink(post.video.dirPath))) {
+				storageEngine.remove(getStorageLink(post.video.dirPath), {recursive: true, force: true});
+			}
 		} catch (e) {
 			sysLog.error("rollback post", e)
 			throw new Error("rollback post is error");

@@ -28,10 +28,10 @@ export default class FileManagerController extends ResBaseController{
 	@Post("/videos")
 	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
 		const user: User = await new UserService().getOne(req["auth"].id);
-		const outputDir = video_path + user.userDir + "/" + crypto.randomUUID()
-		const fullOutputDir = storage_path + outputDir;
+		const outputDir: string = video_path + user.userDir + "/" + crypto.randomUUID()
+		const fullOutputDir: string = storage_path + outputDir;
 		const {src, fileName} = this.getFilePath(req, outputDir, "original" );
-
+		console.log(fileName);
 		try {
 			if (!fs.existsSync(fullOutputDir)) {
 				fs.mkdirSync(fullOutputDir, {recursive: true});
