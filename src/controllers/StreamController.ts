@@ -7,13 +7,13 @@ import {File} from "@prisma/client"
 import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 import {formatM3u8APIEndPoint} from "../helper/stream-helper";
 import {getEnv} from "@utils/index";
-import {HttpError} from "http-errors";
+import sysLog from "@lib/logger/sys-log";
 
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
 
 	@Get('/:fileId/playlist')
-	async getPlaylistFile(@Req() req: Request, @Res() res: Response) {
+	async getPlaylistFile(@Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
 			if (!video) {
@@ -23,20 +23,20 @@ export default class StreamController {
 			const api: string = getEnv("STREAM_ENDPOINT") + "/"+video.id+"/";
 			const segmentFile = "playlist.m3u8";
 
-			const videoPath: string = getStorageLink(video.dirPath + "/" + segmentFile) ;
+			const videoPath: string = getStorageLink(video.dirPath + "/" + scale + "/" + segmentFile) ;
 			const videoSize: number = fs.statSync(videoPath).size;
 
 			if (!segmentFile){
-				console.error(segmentFile);
 				return res.status(400).send("Segment File is required!")
 			}
 
 			let playlist: Buffer = fs.readFileSync(videoPath);
 			playlist = formatM3u8APIEndPoint(playlist, api);
 
-			res.setHeader("Content-Length", videoSize)
-			res.setHeader("Accept-Ranges", "bytes")
-			res.setHeader('Content-Type', 'application/vnd.apple.mpegurl')
+			res.setHeader("Content-Length", videoSize);
+			res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+			this.setCacheControl(res)
+
 			res.send(playlist);
 
 		} catch (e) {
@@ -62,39 +62,38 @@ export default class StreamController {
 			segmentChunk = fs.createReadStream(videoPath);
 
 			if (!segmentFile){
-				console.error(segmentFile);
 				return res.status(400).send("Segment File is required!")
 			}
 
 			const headers = {
 				"X-Segment-Name":  segmentFile,
 				"Access-Control-Expose-Headers": "X-Segment-Name",
-				"Cache-Control": "max-age=1200",
-				"Accept-Ranges": "bytes",
 				"Content-Length": videoSize,
-				"Content-Type": "video/mp4"
+				"Content-Type": "video/mp4",
 			}
 
+			this.setCacheControl(res);
+			res.writeHead(200, headers);
+			segmentChunk.pipe(res);
+
 			req.on("aborted", function() {
-				segmentChunk.close();
-				console.log("Aborting segment chunked!", segmentFile);
-				// throw new HttpError("Aborting segment chunked is aborting")
-			})
-
-			res.writeHead(206, headers)
-
-			segmentChunk.pipe(res, {end: true});
-
-			segmentChunk.on("end", () => {
-				segmentChunk.close();
+				sysLog.error("[Aborting segment]", segmentFile)
+				segmentChunk.destroy()
 				res.end();
 			})
+
+			segmentChunk.on('error', (err: Error) => {
+				sysLog.error("[Stream segment]", "fail reading segment chunk", err)
+				segmentChunk.destroy();
+				res.end();
+			});
+
 		} catch (e) {
 			console.error("[streamSegmentFile]:", e);
 			if (e.code === "ENOENT") {
 				return res.status(404).json({message: "segment not found!"})
 			}
-			segmentChunk.close();
+			segmentChunk.destroy();
 			return res.status(500).json({message: "error: "+e.message})
 		}
 	}
@@ -140,6 +139,10 @@ export default class StreamController {
 		res.setHeader("Cache-control", "public, max-age=3600")
 		console.log("get json");
 		res.json({data: "df"})
+	}
+
+	private setCacheControl(res: Response) {
+		res.setHeader("Cache-Control", 'public, max-age=86400, immutable');
 	}
 };
 

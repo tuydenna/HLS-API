@@ -39,7 +39,7 @@ dotenv.config();
     app.use(coresMiddleware());
     app.use(AuthMiddleware);
 
-    app.use("/storages", express.static(path.join('storages'), {dotfiles: "ignore", index: false}));
+    app.use("/storages", express.static(path.join('storages'), {dotfiles: "ignore", index: false,  maxAge: '30d', immutable: true}));
 
     app.use(router);
 
