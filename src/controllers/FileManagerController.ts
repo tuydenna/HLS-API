@@ -31,7 +31,7 @@ export default class FileManagerController extends ResBaseController{
 		const outputDir: string = video_path + user.userDir + "/" + crypto.randomUUID()
 		const fullOutputDir: string = storage_path + outputDir;
 		const {src, fileName} = this.getFilePath(req, outputDir, "original" );
-		console.log(fileName);
+
 		try {
 			if (!fs.existsSync(fullOutputDir)) {
 				fs.mkdirSync(fullOutputDir, {recursive: true});

@@ -1,4 +1,4 @@
-import {Get, Param, Prefix, Req, Res} from "express-router-controller-khmer";
+import {Get, Param, Prefix, Query, Req, Res} from "express-router-controller-khmer";
 import fs, {ReadStream} from "fs";
 import {getStorageLink} from "@constant/path";
 import {Request, Response} from "express"
@@ -7,6 +7,7 @@ import {File} from "@prisma/client"
 import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 import {formatM3u8APIEndPoint} from "../helper/stream-helper";
 import {getEnv} from "@utils/index";
+import {HttpError} from "http-errors";
 
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
@@ -56,7 +57,7 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			const videoPath: string = getStorageLink(video.dirPath + "/" + segmentFile) ;
+			const videoPath: string = getStorageLink(video.dirPath + "/" + req.query.scale + "/" + segmentFile) ;
 			const videoSize: number = fs.statSync(videoPath).size;
 			segmentChunk = fs.createReadStream(videoPath);
 
@@ -74,6 +75,12 @@ export default class StreamController {
 				"Content-Type": "video/mp4"
 			}
 
+			req.on("aborted", function() {
+				segmentChunk.close();
+				console.log("Aborting segment chunked!", segmentFile);
+				// throw new HttpError("Aborting segment chunked is aborting")
+			})
+
 			res.writeHead(206, headers)
 
 			segmentChunk.pipe(res, {end: true});
@@ -83,7 +90,7 @@ export default class StreamController {
 				res.end();
 			})
 		} catch (e) {
-			console.error(e);
+			console.error("[streamSegmentFile]:", e);
 			if (e.code === "ENOENT") {
 				return res.status(404).json({message: "segment not found!"})
 			}
@@ -93,7 +100,7 @@ export default class StreamController {
 	}
 
 	@Get('/seeks/:fileId/:currentTime')
-	async streamSeekingSegmentFile(@Param("fileId") fileId: string, @Param("currentTime") currentTimeP: string, @Req() req: Request, @Res() res: Response) {
+	async streamSeekingSegmentFile(@Param("fileId") fileId: string, @Param("currentTime") currentTimeP: string, @Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
 		try {
 			const video: File | null = await new FileService().getOne(fileId);
 
@@ -101,7 +108,7 @@ export default class StreamController {
 				throw Error("File not found!")
 			}
 
-			const playlistPath: string = getStorageLink(video.dirPath, "/playlist.json");
+			const playlistPath: string = getStorageLink(video.dirPath, `/${scale}/playlist.json`);
 			const currentTime: number = +currentTimeP;
 			const playlist: IPlaylist = JSON.parse(fs.readFileSync(playlistPath).toString());
 			let totalTime: number = 0, currentSegment: ISegmentPlaylist;
@@ -119,6 +126,7 @@ export default class StreamController {
 			}
 
 			req.params.segmentFile = currentSegment.fileName;
+			req.query.scale = scale;
 
 			return this.streamSegmentFile(req.params.segmentFile, req, res)
 		} catch (e) {

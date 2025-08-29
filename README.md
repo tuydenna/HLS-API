@@ -7,6 +7,11 @@ router is express router
 controllerPath where your controller is located
 logging show all routes in terminal
 
+# **`1.Using HLS and MPEG-DASH `**
+HLS: Apple has historically pushed for its own proprietary protocol, HLS (HTTP Live Streaming), which is the native and most widely supported format on its devices.
+MPEG-DASH: MPEG-DASH is an international standard for adaptive streaming. Unlike HLS, which was originally a proprietary Apple protocol, DASH is vendor-agnostic and a global standard.
+ DASH uses an XML-based Media Presentation Description (MPD) file
+
 # **`1.Checking MIME DECS`**
 
 ```<bash>
@@ -21,7 +26,6 @@ ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,profile,lev
 ```<bash>
   ffmpeg -i input.mp4 -movflags frag_keyframe+empty_moov+default_base_moof -map 0 -f mp4 output_fmp4.mp4
 ```
-
 
 # **`2.Convert  Traditional MP4 to saperate fMP4 segments :: Option B`**
 - FFmpeg
