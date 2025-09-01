@@ -151,19 +151,23 @@ export default class PostService {
 		return post;
 	}
 
-	updatePostFromQueue(id: string, updateData: {status: PostStatus, duration?: number}): Promise<Post> {
-		return db.post.update({
-			where: {id},
-			data: {
-				status: updateData.status,
-				video: {
-					update: {
-						data: {
-							duration: updateData.duration
+	async updatePostFromQueue(id: string, updateData: { status: PostStatus, duration?: number }): Promise<Post> {
+		try {
+			return await db.post.update({
+				where: {id},
+				data: {
+					status: updateData.status,
+					video: {
+						update: {
+							data: {
+								duration: updateData.duration
+							}
 						}
 					}
 				}
-			}
-		});
+			});
+		} catch (e) {
+			sysLog.error("[updatePostFromQueue]", e);
+		}
 	}
 }

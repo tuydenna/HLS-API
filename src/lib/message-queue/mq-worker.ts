@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import {getStorageLink} from "@constant/path";
 import PostService from "@services/PostService";
 import {IPlaylist} from "@interfaces/stream";
+import SysLog from "@lib/logger/sys-log";
 
 dotenv.config();
 
@@ -37,6 +38,23 @@ async function MQWorker() {
         {
             noAck: false,
         });
+
+    channel.on('close', () => {
+        SysLog.error("[MQ Channel]", "is closed")
+        // Re-create the channel or handle the error
+    });
+
+    channel.on('error', (err) => {
+        SysLog.error("[MQ Channel]", "is error", err);
+    });
+
+    connection.on('close', (err) => {
+        console.error('[MQ Connection]', "is closed", err);
+    });
+
+    connection.on('error', (err) => {
+        console.error('[MQ Connection]', "is error", err);
+    });
 
     console.log('Worker listening for fragment upload jobs...');
 }

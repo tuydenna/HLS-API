@@ -5,9 +5,13 @@ import {Request, Response} from "express"
 import FileService from "@services/FileService";
 import {File} from "@prisma/client"
 import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
-import {formatM3u8APIEndPoint} from "../helper/stream-helper";
+import {
+	formatMasterM3u8APIEndPoint,
+	formatPlaylistM3u8APIEndPoint
+} from "../helper/stream-helper";
 import {getEnv} from "@utils/index";
 import sysLog from "@lib/logger/sys-log";
+import SysLog from "@lib/logger/sys-log";
 
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
@@ -16,26 +20,35 @@ export default class StreamController {
 	async getPlaylistFile(@Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
+			const playListFileName: string = scale ? scale + ".m3u8" : "master.m3u8";
+
+			SysLog.error("playListFileName", playListFileName);
+
 			if (!video) {
 				throw Error("File not found!")
 			}
 
 			const api: string = getEnv("STREAM_ENDPOINT") + "/"+video.id+"/";
-			const segmentFile = "playlist.m3u8";
+			const playlistFile: string = (scale ? scale + "/" : "" ) + playListFileName;
 
-			const videoPath: string = getStorageLink(video.dirPath + "/" + scale + "/" + segmentFile) ;
+			const videoPath: string = getStorageLink(`${video.dirPath}/${playlistFile}`) ;
 			const videoSize: number = fs.statSync(videoPath).size;
 
-			if (!segmentFile){
+			if (!playlistFile){
 				return res.status(400).send("Segment File is required!")
 			}
 
 			let playlist: Buffer = fs.readFileSync(videoPath);
-			playlist = formatM3u8APIEndPoint(playlist, api);
+
+			if (scale) {
+				playlist = formatPlaylistM3u8APIEndPoint(playlist, api, scale);
+			} else {
+				playlist = formatMasterM3u8APIEndPoint(playlist, api + "playlist");
+			}
 
 			res.setHeader("Content-Length", videoSize);
 			res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-			this.setCacheControl(res)
+			// this.setCacheControl(res)
 
 			res.send(playlist);
 
@@ -72,7 +85,7 @@ export default class StreamController {
 				"Content-Type": "video/mp4",
 			}
 
-			this.setCacheControl(res);
+			// this.setCacheControl(res);
 			res.writeHead(200, headers);
 			segmentChunk.pipe(res);
 

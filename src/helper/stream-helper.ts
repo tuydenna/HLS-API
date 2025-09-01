@@ -1,10 +1,17 @@
 
-function formatM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string): Buffer {
+function formatPlaylistM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string, scale: string): Buffer {
     let txt: string = txtBuffer.toString();
     txt = txt.toString()
-    txt = txt.replace(/".*(init.mp4)"/g, `"${apiEndPoint+"$1"}"`)
-    txt = txt.replace(/(seg_.*.m4s)/g, apiEndPoint+"$1")
+    txt = txt.replace(/".*(init.mp4)"/g, apiEndPoint+"$1?scale="+scale)
+    txt = txt.replace(/(seg_.*.m4s)/g, apiEndPoint+"$1?scale="+scale)
     return Buffer.from(txt);
 }
 
-export {formatM3u8APIEndPoint};
+function formatMasterM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string): Buffer {
+    let txt: string = txtBuffer.toString();
+    txt = txt.toString()
+    txt = txt.replace(/(.*p)\\.*p.m3u8/g, apiEndPoint + "?scale=$1")
+    return Buffer.from(txt);
+}
+
+export {formatPlaylistM3u8APIEndPoint, formatMasterM3u8APIEndPoint};

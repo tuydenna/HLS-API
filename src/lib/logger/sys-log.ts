@@ -1,5 +1,5 @@
 class SysLog {
-    success(label: string, msg: string) {
+    success(label: string, msg: any) {
         console.log("\x1b[32m", label+":", "\x1b[0m", msg);
     }
 

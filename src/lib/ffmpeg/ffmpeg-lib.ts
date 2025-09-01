@@ -3,6 +3,9 @@ import {execSync} from "child_process";
 import {isWindowOS} from "@utils/index";
 import parseM3u8PlaylistToJSON from "@lib/ffmpeg/m3u8-playlist-parser";
 import {IPlaylist} from "@interfaces/stream";
+import fs from "fs";
+import {IScaleSetting} from "@interfaces/video-config";
+import {ScaleSettings} from "@constant/video-config";
 
 export default class FfmpegLib {
     private commands: string[] = ["ffmpeg -i"];
@@ -36,11 +39,17 @@ export default class FfmpegLib {
         return this;
     }
 
-     saveToHLS(outputDir: string) {
+     saveToHLS(outputDir: string): IPlaylist {
         const playlistOutput: string =  path.join(outputDir ,"/playlist.m3u8");
         const segmentOutput: string= path.join(outputDir ,"/seg_%d.m4s");
         const initFileName: string = "init.mp4";
         const initOutput: string= path.join(outputDir , "/", initFileName);
+
+        this.addVideoCodec("h264_nvenc")
+            .addAudioCodec("aac")
+            .addAudioBitRate("128k")
+            // .addCommand("-preset", "veryfast")
+            .addCommand("-crf", "23")
         this.commands.push("-f", "hls");
         this.commands.push("-master_pl_name", "/master.m3u8");
         this.commands.push("-hls_time", "6");
@@ -57,25 +66,29 @@ export default class FfmpegLib {
          }
         this.commands.push(playlistOutput);
         this.save();
-        return {playlistOutput, segmentOutput, initOutput};
+        return parseM3u8PlaylistToJSON(playlistOutput, outputDir);
     }
 
      saveToHLS2(outputDir: string): IPlaylist {
-        this.configResize360p();
-        this.configResize720p();
-        this.configResize1280p();
+
+        this.setupVideoResolutionScaling();
+
         let d;
 
          for (const configResizeOption of this.config_resize_options) {
 
-             const playlistOutput: string =  path.join(outputDir, "/%v/playlist.m3u8");
+             const playlistOutput: string =  path.join(outputDir, "/%v/"+configResizeOption.resize_dir+".m3u8");
              const segmentOutput: string = path.join(outputDir, "/%v/seg_%d.m4s");
-             const masterOutput: string = "/master.m3u8";
+             const masterOutput: string = "/master-"+configResizeOption.resize_dir+".m3u8";
              const initFileName: string = "init.mp4";
              const initOutput: string = path.join(outputDir, "/"+configResizeOption.resize_dir+"/", initFileName);
 
-             const newFfmpeg: FfmpegLib = new FfmpegLib(this.input_file);
-
+             const newFfmpeg: FfmpegLib = new FfmpegLib(this.input_file)
+             .addVideoCodec("h264_nvenc")
+             .addAudioCodec("aac")
+             .addAudioBitRate("128k")
+             // .addCommand("-preset", "veryfast")
+             .addCommand("-crf", "23")
              newFfmpeg.addCommand(configResizeOption.key, configResizeOption.value);
              newFfmpeg.addCommand("-map", "v:0");
              newFfmpeg.addCommand("-map", "0:a");
@@ -94,10 +107,11 @@ export default class FfmpegLib {
              } else {
                  newFfmpeg.addCommand("-hls_fmp4_init_filename", initFileName);
              }
+
              newFfmpeg.addCommand(playlistOutput);
              newFfmpeg.save();
-             console.log({playlistOutput, segmentOutput, initOutput})
-             d = parseM3u8PlaylistToJSON(path.join(outputDir, `/${configResizeOption.resize_dir}/playlist.m3u8`), path.join(outputDir, `/${configResizeOption.resize_dir}`))
+
+             d = parseM3u8PlaylistToJSON(path.join(outputDir, `/${configResizeOption.resize_dir}/${configResizeOption.resize_dir}.m3u8`), path.join(outputDir, `/${configResizeOption.resize_dir}`))
          }
 
          return d;
@@ -114,15 +128,16 @@ export default class FfmpegLib {
         }
     }
 
-    private configResize360p() {
-        this.config_resize_options.push({key: "-filter:v:0", value: "scale=640:360 -c:v:0 libx264 -b:v:0 1500k", resize_dir: "360p"});
+    private setupVideoResolutionScaling() {
+        const outputSTD: string = execSync("ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 " + this.input_file).toString();
+        const [width, height] = outputSTD.split("x").map(Number);
+        const newScaleSetting: IScaleSetting[] = ScaleSettings.filter(setting => setting.size <= height);
+        this.configResize(newScaleSetting);
     }
 
-    private configResize720p() {
-        this.config_resize_options.push({key: "-filter:v:0", value: "scale=1280:720 -c:v:0 libx264 -b:v:0 1500k", resize_dir: "720p"});
-    }
-
-    private configResize1280p() {
-        this.config_resize_options.push({key: "-filter:v:0", value: "scale=1920:1080 -c:v:0 libx264 -b:v:0 3000k", resize_dir: "1280p"});
+    private configResize(scaleSettings: any[]) {
+        for (const scaleSetting of scaleSettings) {
+            this.config_resize_options.push({key: "-filter:v:0", value: `scale=${scaleSetting.scale.width.toString()}:${scaleSetting.scale.height.toString()} -b:v:0 1500k`, resize_dir: scaleSetting.size + "p"});
+        }
     }
 }
