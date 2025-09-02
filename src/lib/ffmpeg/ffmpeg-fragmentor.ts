@@ -5,7 +5,7 @@ import SysLog from "@lib/logger/sys-log";
 export default function fragmentMp4ToFMp4(inputFile: string, outputDir: string): IPlaylist {
     try {
         const outputs: IPlaylist = new FfmpegLib(inputFile)
-            .saveToHLS2(outputDir);
+            .saveToHLS(outputDir);
             SysLog.success("[fragmentMp4ToFMp4]:", "video encoding successfully");
             return outputs;
     } catch (e) {

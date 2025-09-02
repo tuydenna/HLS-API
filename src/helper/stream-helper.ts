@@ -1,9 +1,15 @@
 
-function formatPlaylistM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string, scale: string): Buffer {
+function formatPlaylistM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string, scale?: string): Buffer {
     let txt: string = txtBuffer.toString();
-    txt = txt.toString()
-    txt = txt.replace(/".*(init.mp4)"/g, apiEndPoint+"$1?scale="+scale)
-    txt = txt.replace(/(seg_.*.m4s)/g, apiEndPoint+"$1?scale="+scale)
+    txt = txt.toString();
+    if (scale) {
+        txt = txt.replace(/".*(init.mp4)"/g, apiEndPoint+"$1?scale="+scale)
+        txt = txt.replace(/(seg_.*.m4s)/g, apiEndPoint+"$1?scale="+scale)
+    } else {
+        txt = txt.replace(/".*(init.mp4)"/g, apiEndPoint+"$1")
+        txt = txt.replace(/(seg_.*.m4s)/g, apiEndPoint+"$1")
+    }
+
     return Buffer.from(txt);
 }
 

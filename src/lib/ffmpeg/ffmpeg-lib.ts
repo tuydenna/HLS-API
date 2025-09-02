@@ -45,13 +45,14 @@ export default class FfmpegLib {
         const initFileName: string = "init.mp4";
         const initOutput: string= path.join(outputDir , "/", initFileName);
 
-        this.addVideoCodec("h264_nvenc")
-            .addAudioCodec("aac")
-            .addAudioBitRate("128k")
-            // .addCommand("-preset", "veryfast")
-            .addCommand("-crf", "23")
+        this.addVideoCodec("libx264")
+             .addAudioCodec("aac")
+             .addAudioBitRate("128k")
+             .addCommand("-map", "0")
+             .addCommand("-preset", "veryfast")
+             .addCommand("-crf", "23");
         this.commands.push("-f", "hls");
-        this.commands.push("-master_pl_name", "/master.m3u8");
+        // this.commands.push("-master_pl_name", "/master.m3u8");
         this.commands.push("-hls_time", "6");
         this.commands.push("-hls_playlist_type", "vod");
         this.commands.push("-hls_segment_type ", "fmp4");
@@ -69,7 +70,7 @@ export default class FfmpegLib {
         return parseM3u8PlaylistToJSON(playlistOutput, outputDir);
     }
 
-     saveToHLS2(outputDir: string): IPlaylist {
+     saveToHLSV2(outputDir: string): IPlaylist {
 
         this.setupVideoResolutionScaling();
 
