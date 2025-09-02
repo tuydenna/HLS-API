@@ -20,19 +20,20 @@ export default class StreamController {
 	async getPlaylistFile(@Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
 		try {
 			const video: File | null = await new FileService().getOne(req.params.fileId);
-			const playListFileName: string = scale ? scale + ".m3u8" : "master.m3u8";
-
-			SysLog.error("playListFileName", playListFileName);
+			const playListFileName: string = scale ? "playlist.m3u8" : "master.m3u8";
 
 			if (!video) {
+				console.log("\"File not found!\"");
 				throw Error("File not found!")
 			}
+			const api: string = getEnv("STREAM_ENDPOINT_V2") + "/"+video.id+"/";
 
-			const api: string = getEnv("STREAM_ENDPOINT") + "/"+video.id+"/";
 			const playlistFile: string = (scale ? scale + "/" : "" ) + playListFileName;
-
 			const videoPath: string = getStorageLink(`${video.dirPath}/${playlistFile}`) ;
 			const videoSize: number = fs.statSync(videoPath).size;
+
+			console.log("STREAM_ENDPOINT_V2", videoPath);
+			SysLog.error("playListFileName", playListFileName, videoPath);
 
 			if (!playlistFile){
 				return res.status(400).send("Segment File is required!")

@@ -1,0 +1,7 @@
+HLS Apple native:
+[Error: The operation is not supported] -> read ->playlist.m3u8
+ * This error commonly with .m3u8 syntax and incorrect content-type header on response
+     + check .m3u8 syntax (In init URL must have double quote "")
+        Ex: #EXT-X-MAP:URI="http://192.168.18.8:3080/api/streams/fmp4/68b67853a625b5fde29163b8/init.mp4"
+     + log API to see if HLS player read all API
+     + Set correct header ('Content-Type', 'application/vnd.apple.mpegurl')

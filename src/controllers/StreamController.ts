@@ -34,7 +34,6 @@ export default class StreamController {
 			playlist = formatPlaylistM3u8APIEndPoint(playlist, api);
 
 			res.setHeader("Content-Length", videoSize)
-			res.setHeader("Accept-Ranges", "bytes")
 			res.setHeader('Content-Type', 'application/vnd.apple.mpegurl')
 			res.send(playlist);
 
