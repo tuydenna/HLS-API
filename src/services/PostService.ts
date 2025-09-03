@@ -7,6 +7,7 @@ import storageEngine from "@services/StorageEngine";
 import {getStorageLink} from "@constant/path";
 import sysLog from "@lib/logger/sys-log";
 import fs from "fs";
+import ErrorException from "@config/error/error-exception";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -133,13 +134,13 @@ export default class PostService {
 	}
 
 	async increaseViews(postId: string, authId: string): Promise<Post> {
-		const THROTTLE_SECONDS = 30 * 60; // 30 minutes
+		const THROTTLE_SECONDS: number = 30 * 60; // 30 minutes
 		const redisKey = `view:${postId}:${authId}`;
 
 		const alreadyViewed: boolean = await redisExist(redisKey);
 
 		if (alreadyViewed) {
-			throw Error('View already counted recently');
+			throw new ErrorException('View already counted recently', ErrorException.BAD_REQUEST_CODE);
 		}
 
 		const post: Post = await db.post.findFirstOrThrow({where: {id: postId}});

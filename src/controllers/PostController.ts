@@ -44,7 +44,11 @@ export default class PostController  extends ResBaseController{
 
 	@Put("/:id/views")
 	async increaseView(@Param("id")  id: string, @Req() req: Request, @Res() res: Response) {
-		return this.resSuccess(res, await this.service.increaseViews(id, req["auth"].id))
+		try {
+			return this.resSuccess(res, await this.service.increaseViews(id, req["auth"].id))
+		} catch (e) {
+			return this.resError(res, e.message)
+		}
 	}
 
 };

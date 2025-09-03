@@ -22,7 +22,7 @@ export default class AuthController extends ResBaseController {
             const loginRateLimiter = new LoginRateLimiter(RedisServer.client);
             return this.resSuccess(res, await loginRateLimiter.use(data, req, res, this.authorizeUser.bind(this)));
         } catch (e) {
-            return this.resError(res, e.message, e.code);
+            return this.resError(res, e);
         }
     }
 

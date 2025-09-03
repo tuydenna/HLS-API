@@ -1,4 +1,5 @@
 import cores from "cors";
+import SysLog from "@lib/logger/sys-log";
 
 export function coresMiddleware() {
     return cores({
@@ -7,6 +8,7 @@ export function coresMiddleware() {
             if (whiteList.indexOf(url) === -1 && url) {
                 return cb(new Error("Origin is not a valid URL"));
             }
+            SysLog.error("[coresMiddleware]", url);
             return cb(null, true);
         } ,
         credentials: true

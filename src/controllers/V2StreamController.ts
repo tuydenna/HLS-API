@@ -12,6 +12,7 @@ import {
 import {getEnv} from "@utils/index";
 import sysLog from "@lib/logger/sys-log";
 import SysLog from "@lib/logger/sys-log";
+import ErrorException from "@config/error/error-exception";
 
 @Prefix('/api/v2/streams/fmp4')
 export default class StreamController {
@@ -103,9 +104,9 @@ export default class StreamController {
 			});
 
 		} catch (e) {
-			console.error("[streamSegmentFile]:", e);
+			SysLog.error("[streamSegmentFile]", e);
 			if (e.code === "ENOENT") {
-				return res.status(404).json({message: "segment not found!"})
+				return res.status(ErrorException.END_STREAM_CODE).json({message: "Stream segment file is ended !"})
 			}
 			segmentChunk.destroy();
 			return res.status(500).json({message: "error: "+e.message})
