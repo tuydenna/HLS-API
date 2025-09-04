@@ -47,7 +47,7 @@ export default class PostController  extends ResBaseController{
 		try {
 			return this.resSuccess(res, await this.service.increaseViews(id, req["auth"].id))
 		} catch (e) {
-			return this.resError(res, e.message)
+			return this.resError(res, e)
 		}
 	}
 
