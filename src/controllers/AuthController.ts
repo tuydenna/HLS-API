@@ -27,13 +27,13 @@ export default class AuthController extends ResBaseController {
     }
 
     @Post("/register")
-    async register(req: Request, res: Response) {
+    async register(@Body() data, @Res() res: Response) {
         try {
-            const user: User = await this.userService.create(req.body);
+            const user: User = await this.userService.create(data);
             this.setHeaderAuthCookie(res, user.token);
             return this.resSuccess(res, user);
         } catch (e) {
-            return this.resError(res, e.message);
+            return this.resError(res, e);
         }
     }
 

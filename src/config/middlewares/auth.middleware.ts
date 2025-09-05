@@ -3,7 +3,7 @@ import jwt, {JwtPayload} from "jsonwebtoken";
 import {getEnv} from "@utils/index";
 import {Response, Request} from "express";
 
-const exceptPaths: string[] = ["/api/authentications/register", "/api/files/avatar", "/api/authentications/login"]
+const exceptPaths: string[] = ["/api/authentications/register", "/api/files/avatars", "/api/authentications/login"]
 
 export function AuthMiddleware(req: Request, res: Response, next: NextFunction) {
     console.warn("middleware", req.path, req.cookies);

@@ -6,7 +6,7 @@ export default class SearchEnginService {
 	async searchAutocompletes(searchKey: string): Promise<string[]> {
 		const posts: Post[] = await db.post.findMany({
 			where: {
-				title: {startsWith: searchKey, mode: "insensitive"},
+				title: {startsWith: this.regexEscapeSpecialChars(searchKey), mode: "insensitive"},
 				status: PostStatus.PUBLISHED
 			},
 			take: 5
@@ -17,7 +17,7 @@ export default class SearchEnginService {
 	async searchPosts(filter: SearchPostFilterDto): Promise<Post[]> {
 		const posts: Post[] = await db.post.findMany({
 			where: {
-				title: {contains: filter.searchKey ? filter.searchKey : undefined, mode: "insensitive"},
+				title: {contains: filter.searchKey ? this.regexEscapeSpecialChars(filter.searchKey) : undefined, mode: "insensitive"},
 				status: PostStatus.PUBLISHED
 			},
 			include: {author: true},
@@ -26,5 +26,9 @@ export default class SearchEnginService {
 			orderBy: {createdAt: "asc"}
 		});
 		return posts;
+	}
+
+	private regexEscapeSpecialChars(str: string) {
+		return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	}
 }
