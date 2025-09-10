@@ -1,12 +1,10 @@
-import path from "path";
 import {execSync} from "child_process";
 import {isWindowOS} from "@utils/index";
 import parseM3u8PlaylistToJSON from "@lib/ffmpeg/m3u8-playlist-parser";
 import {IPlaylist} from "@interfaces/stream";
 import {IScaleSetting} from "@interfaces/video-config";
 import {ScaleSettings} from "@constant/video-config";
-import fs from "fs";
-import * as process from "node:process";
+import fs, {WriteStream} from "fs";
 import StorageEngine from "@services/StorageEngine";
 import storageEngine from "@services/StorageEngine";
 
@@ -76,7 +74,7 @@ export default class FfmpegLib {
      saveToHLSV2(outputDir: string): IPlaylist {
 
         this.setupVideoResolutionScaling();
-        const writeMasterM3u8File = fs.createWriteStream(storageEngine.joinPath(outputDir ,"/master.m3u8"));
+        const writeMasterM3u8File: WriteStream = fs.createWriteStream(storageEngine.joinPath(outputDir ,"/master.m3u8"));
         writeMasterM3u8File.write(`#EXTM3U\n#EXT-X-VERSION:7`);
         let d;
 
