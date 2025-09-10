@@ -8,6 +8,20 @@ export default class PostController  extends ResBaseController{
 
 	private readonly service: PostService = new PostService();
 
+	@Post("/")
+	async create(@Body() data,  @Res() res: Response) {
+		try {
+			return this.resSuccess(res, await this.service.create(data));
+		} catch (e) {
+			return this.resError(res, e.message)
+		}
+	}
+
+	@Get("/authors")
+	async getAuthorized(@Req() req: Request, @Res() res: Response) {
+		return this.resSuccess(res, await this.service.getAuthorized(req["auth"].id))
+	}
+
 	@Get("/:id")
 	async getOne(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
 		return this.resSuccess(res, await this.service.getOne(id, req["auth"].id));
@@ -16,15 +30,6 @@ export default class PostController  extends ResBaseController{
 	@Get("")
 	async getAll(@Res() res: Response) {
 		return this.resSuccess(res, await this.service.getAll())
-	}
-
-	@Post("/")
-	async create(@Body() data,  @Res() res: Response) {
-		try {
-			return this.resSuccess(res, await this.service.create(data));
-		} catch (e) {
-			return this.resError(res, e.message)
-		}
 	}
 
 	@Delete("/:id")

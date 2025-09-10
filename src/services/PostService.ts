@@ -18,6 +18,14 @@ export default class PostService {
 			orderBy: {createdAt: "asc"}
 		});
 	}
+
+	async getAuthorized(authId: string) {
+		return db.post.findMany({
+			where: {authorId: authId},
+			include: {author: true, video: true},
+			orderBy: {createdAt: "asc"}
+		});
+	}
 	
 	async getOne(id: string, userId: string | undefined): Promise<Post> {
 		const post = await db.post.findFirstOrThrow({
