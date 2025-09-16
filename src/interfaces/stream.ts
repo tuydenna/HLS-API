@@ -1,3 +1,5 @@
+import {Quality} from "@prisma/client";
+
 interface ISegmentPlaylist {
     fileName: string;
     start: number;
@@ -10,4 +12,9 @@ interface IPlaylist {
     duration: number;
 }
 
-export type { IPlaylist, ISegmentPlaylist };
+interface IHSLResponse {
+    duration: number;
+    quality: Quality[];
+}
+
+export type { IPlaylist, ISegmentPlaylist, IHSLResponse };

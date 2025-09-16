@@ -80,6 +80,7 @@ model File {
   dirPath   String
   filePath  String
   size      Float
+  quality   Quality[]
   duration  Float @default(0)
   post      Post?
 }
@@ -106,3 +107,12 @@ type Author {
   name  String
   avatar String
 }
+
+type Quality {
+  name String
+  scale String
+}
+
+
+
+

@@ -1,12 +1,11 @@
 import db from "@lib/prisma/db-connector";
-import {LikePost, Post, PostStatus} from "@prisma/client";
+import {LikePost, Post, PostStatus, Quality} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 import {sendMQ} from "@lib/message-queue/mq-connector";
 import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
 import storageEngine from "@services/StorageEngine";
 import {getStorageLink} from "@constant/path";
 import sysLog from "@lib/logger/sys-log";
-import fs from "fs";
 import ErrorException from "@config/error/error-exception";
 
 export default class PostService {
@@ -85,10 +84,10 @@ export default class PostService {
 			await db.likePost.deleteMany({where: {postId: post.id, userId: post.authorId}});
 			await db.post.delete({where: {id: post.id}});
 			await db.file.delete({where: {id: post.videoId}});
-			if (fs.existsSync(getStorageLink(post.thumbnail))) {
+			if (storageEngine.isExist(getStorageLink(post.thumbnail))) {
 				storageEngine.remove(getStorageLink(post.thumbnail));
 			}
-			if (fs.existsSync(getStorageLink(post.video.dirPath))) {
+			if (storageEngine.isExist(getStorageLink(post.video.dirPath))) {
 				storageEngine.remove(getStorageLink(post.video.dirPath), {recursive: true, force: true});
 			}
 		} catch (e) {
@@ -160,7 +159,7 @@ export default class PostService {
 		return post;
 	}
 
-	async updatePostFromQueue(id: string, updateData: { status: PostStatus, duration?: number }): Promise<Post> {
+	async updatePostFromQueue(id: string, updateData: { status: PostStatus, duration?: number, quality?: Quality[] }): Promise<Post> {
 		try {
 			return await db.post.update({
 				where: {id},
@@ -169,7 +168,8 @@ export default class PostService {
 					video: {
 						update: {
 							data: {
-								duration: updateData.duration
+								duration: updateData.duration,
+								quality: updateData.quality
 							}
 						}
 					}

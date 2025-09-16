@@ -8,7 +8,7 @@ export default class RedisServer {
         RedisServer.client = new Redis({
             host: getEnv("REDIS_HOST"),
             port: +getEnv("REDIS_PORT"),
-            // password: getEnv("REDIS_PASSWORD"),
+            password: getEnv("REDIS_PASSWORD")
         });
     }
 
