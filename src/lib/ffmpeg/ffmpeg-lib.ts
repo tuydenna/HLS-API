@@ -1,18 +1,22 @@
 import {execSync} from "child_process";
 import {isWindowOS} from "@utils/index";
 import parseM3u8PlaylistToJSON from "@lib/ffmpeg/m3u8-playlist-parser";
-import {IPlaylist} from "@interfaces/stream";
+import {IHSLResponse, IPlaylist} from "@interfaces/stream";
 import {IScaleSetting} from "@interfaces/video-config";
 import {ScaleSettings} from "@constant/video-config";
 import fs, {WriteStream} from "fs";
 import StorageEngine from "@services/StorageEngine";
 import storageEngine from "@services/StorageEngine";
+import {Quality} from "@prisma/client";
+import SysLog from "@lib/logger/sys-log";
+import ErrorException from "@config/error/error-exception";
 
 export default class FfmpegLib {
     private commands: string[] = ["ffmpeg -i"];
     private input_file: string = "";
-
-    private config_resize_options: Array<{key: string, value: string, resize_dir: string}> = []
+    private qualities: Quality[] = [];
+    private video_duration: number = 0;
+    private config_resize_options: Array<{ key: string, value: string, resize_dir: string }> = []
 
     constructor(inputFile: string) {
         console.log("FfmpegLib", inputFile);
@@ -40,18 +44,18 @@ export default class FfmpegLib {
         return this;
     }
 
-     saveToHLS(outputDir: string): IPlaylist {
-        const playlistOutput: string =  storageEngine.joinPath(outputDir ,"/playlist.m3u8");
-        const segmentOutput: string= storageEngine.joinPath(outputDir ,"/seg_%d.m4s");
+    async saveToHLS(outputDir: string): Promise<IPlaylist> {
+        const playlistOutput: string = storageEngine.joinPath(outputDir, "/playlist.m3u8");
+        const segmentOutput: string = storageEngine.joinPath(outputDir, "/seg_%d.m4s");
         const initFileName: string = "init.mp4";
-        const initOutput: string= storageEngine.joinPath(outputDir , "/", initFileName);
+        const initOutput: string = storageEngine.joinPath(outputDir, "/", initFileName);
 
         this.addVideoCodec("libx264")
-             .addAudioCodec("aac")
-             .addAudioBitRate("128k")
-             .addCommand("-map", "0")
-             .addCommand("-preset", "veryfast")
-             .addCommand("-crf", "23");
+            .addAudioCodec("aac")
+            .addAudioBitRate("128k")
+            .addCommand("-map", "0")
+            .addCommand("-preset", "veryfast")
+            .addCommand("-crf", "23");
         this.commands.push("-f", "hls");
         // this.commands.push("-master_pl_name", "/master.m3u8");
         this.commands.push("-hls_time", "6");
@@ -61,78 +65,100 @@ export default class FfmpegLib {
         this.commands.push("-hls_segment_filename ", segmentOutput);
 
         // OS Config
-         if (isWindowOS()) {
-             this.commands.push("-hls_fmp4_init_filename", initOutput);
-         } else {
-             this.commands.push("-hls_fmp4_init_filename", initFileName);
-         }
+        if (isWindowOS()) {
+            this.commands.push("-hls_fmp4_init_filename", initOutput);
+        } else {
+            this.commands.push("-hls_fmp4_init_filename", initFileName);
+        }
         this.commands.push(playlistOutput);
         this.save();
-        return parseM3u8PlaylistToJSON(playlistOutput, outputDir);
+        return await parseM3u8PlaylistToJSON(playlistOutput, outputDir);
     }
 
-     saveToHLSV2(outputDir: string): IPlaylist {
+    async saveToHLSV2(outputDir: string): Promise<IHSLResponse> {
+        let writeMasterM3u8File: WriteStream | undefined;
+        try {
+            this.setupVideoResolutionScaling();
+            writeMasterM3u8File = fs.createWriteStream(storageEngine.joinPath(outputDir, "/master.m3u8"));
+            writeMasterM3u8File.write(`#EXTM3U\n#EXT-X-VERSION:7`);
 
-        this.setupVideoResolutionScaling();
-        const writeMasterM3u8File: WriteStream = fs.createWriteStream(storageEngine.joinPath(outputDir ,"/master.m3u8"));
-        writeMasterM3u8File.write(`#EXTM3U\n#EXT-X-VERSION:7`);
-        let d;
+            for (const configResizeOption of this.config_resize_options) {
 
-         for (const configResizeOption of this.config_resize_options) {
+                const playlistOutput: string = storageEngine.joinPath(outputDir, "/%v/" + "playlist.m3u8");
+                const segmentOutput: string = storageEngine.joinPath(outputDir, "/%v/seg_%d.m4s");
+                const currentMasterM3u8File: string = "/master-" + configResizeOption.resize_dir + ".m3u8";
+                const currentMasterM3u8Output: string = storageEngine.joinPath(outputDir, currentMasterM3u8File);
+                const initFileName: string = "init.mp4";
+                const initOutput: string = storageEngine.joinPath(outputDir, "/" + configResizeOption.resize_dir + "/", initFileName);
 
-             const playlistOutput: string =  storageEngine.joinPath(outputDir, "/%v/"+"playlist.m3u8");
-             const segmentOutput: string = storageEngine.joinPath(outputDir, "/%v/seg_%d.m4s");
-             const masterFile: string = "/master-"+configResizeOption.resize_dir+".m3u8";
-             const masterOutput: string = storageEngine.joinPath(outputDir, masterFile);
-             const initFileName: string = "init.mp4";
-             const initOutput: string = storageEngine.joinPath(outputDir, "/"+configResizeOption.resize_dir+"/", initFileName);
+                const newFfmpeg: FfmpegLib = new FfmpegLib(this.input_file)
+                    .addVideoCodec("h264_nvenc")
+                    .addAudioCodec("aac")
+                    .addAudioBitRate("128k")
+                    // .addCommand("-preset", "veryfast")
+                    .addCommand("-crf", "23")
+                newFfmpeg.addCommand(configResizeOption.key, configResizeOption.value);
+                newFfmpeg.addCommand("-map", "v:0");
+                newFfmpeg.addCommand("-map", "0:a");
+                newFfmpeg.addCommand("-var_stream_map", `\"v:0,a:0,name:${configResizeOption.resize_dir}\"`);
+                newFfmpeg.addCommand("-f", "hls");
+                newFfmpeg.addCommand("-master_pl_name", currentMasterM3u8File);
+                newFfmpeg.addCommand("-hls_time", "6");
+                newFfmpeg.addCommand("-hls_playlist_type", "vod");
+                newFfmpeg.addCommand("-hls_segment_type ", "fmp4");
+                newFfmpeg.addCommand("-hls_flags", "independent_segments");
+                newFfmpeg.addCommand("-hls_segment_filename ", segmentOutput);
 
-             const newFfmpeg: FfmpegLib = new FfmpegLib(this.input_file)
-             .addVideoCodec("h264_nvenc")
-             .addAudioCodec("aac")
-             .addAudioBitRate("128k")
-             // .addCommand("-preset", "veryfast")
-             .addCommand("-crf", "23")
-             newFfmpeg.addCommand(configResizeOption.key, configResizeOption.value);
-             newFfmpeg.addCommand("-map", "v:0");
-             newFfmpeg.addCommand("-map", "0:a");
-             newFfmpeg.addCommand("-var_stream_map", `\"v:0,a:0,name:${configResizeOption.resize_dir}\"`);
-             newFfmpeg.addCommand("-f", "hls");
-             newFfmpeg.addCommand("-master_pl_name", masterFile);
-             newFfmpeg.addCommand("-hls_time", "6");
-             newFfmpeg.addCommand("-hls_playlist_type", "vod");
-             newFfmpeg.addCommand("-hls_segment_type ", "fmp4");
-             newFfmpeg.addCommand("-hls_flags", "independent_segments");
-             newFfmpeg.addCommand("-hls_segment_filename ", segmentOutput);
+                // OS Config
+                if (isWindowOS()) {
+                    newFfmpeg.addCommand("-hls_fmp4_init_filename", initOutput);
+                } else {
+                    newFfmpeg.addCommand("-hls_fmp4_init_filename", initFileName);
+                }
 
-             // OS Config
-             if (isWindowOS()) {
-                 newFfmpeg.addCommand("-hls_fmp4_init_filename", initOutput);
-             } else {
-                 newFfmpeg.addCommand("-hls_fmp4_init_filename", initFileName);
-             }
+                newFfmpeg.addCommand(playlistOutput);
+                newFfmpeg.save();
 
-             newFfmpeg.addCommand(playlistOutput);
-             newFfmpeg.save();
+                // Reformat M3u8 File
+                this.writeCurrentM3u8ToMasterM3u8File(writeMasterM3u8File, currentMasterM3u8Output);
+                const {duration} = await parseM3u8PlaylistToJSON(storageEngine.joinPath(outputDir, `/${configResizeOption.resize_dir}/playlist.m3u8`), storageEngine.joinPath(outputDir, `/${configResizeOption.resize_dir}`))
+                this.video_duration = duration;
+            }
 
-             const scaleResolutionM4u8String: string = fs.readFileSync(masterOutput).toString().split("\n").filter(Boolean).slice(2).join("\n");
-             writeMasterM3u8File.write("\n" + scaleResolutionM4u8String);
-             StorageEngine.remove(masterOutput);
-             d = parseM3u8PlaylistToJSON(storageEngine.joinPath(outputDir, `/${configResizeOption.resize_dir}/playlist.m3u8`), storageEngine.joinPath(outputDir, `/${configResizeOption.resize_dir}`))
-         }
-         writeMasterM3u8File.close();
-         return d;
-     }
+            writeMasterM3u8File.close();
+            return {duration: this.video_duration, quality: this.qualities};
+        } catch (e) {
+            this.rollBack(writeMasterM3u8File, outputDir);
+            SysLog.error("[HSL Encoding]", e);
+            throw new ErrorException(e.message, e.code);
+        }
+    }
 
     private save() {
         try {
             const command: string = this.commands.join(" ");
-            execSync(command, { stdio: "inherit" });
+            execSync(command, {stdio: "inherit"});
             return "success";
         } catch (error) {
             console.error(error);
             return "error";
         }
+    }
+
+    private rollBack(writeMasterM3u8File: WriteStream | undefined, outputDir: string) {
+        writeMasterM3u8File?.destroy();
+        console.log(fs.statSync(outputDir), fs.existsSync(outputDir), outputDir);
+        fs.rm(outputDir, {recursive: true, force: true}, err => {
+            if (err) {
+                throw new ErrorException(err.message);
+            }
+        })
+    }
+
+    private writeCurrentM3u8ToMasterM3u8File(writeMasterM3u8File: WriteStream | undefined, currentMasterM3u8Output: string) {
+        const scaleResolutionM4u8String: string = fs.readFileSync(currentMasterM3u8Output).toString().split("\n").filter(Boolean).slice(2).join("\n");
+        writeMasterM3u8File?.write("\n" + scaleResolutionM4u8String);
+        StorageEngine.remove(currentMasterM3u8Output);
     }
 
     private setupVideoResolutionScaling() {
@@ -144,7 +170,15 @@ export default class FfmpegLib {
 
     private configResize(scaleSettings: any[]) {
         for (const scaleSetting of scaleSettings) {
-            this.config_resize_options.push({key: "-filter:v:0", value: `scale=${scaleSetting.scale.width.toString()}:${scaleSetting.scale.height.toString()} -b:v:0 1500k`, resize_dir: scaleSetting.size + "p"});
+            this.qualities.push({
+                name: scaleSetting.size + "p",
+                scale: scaleSetting.scale.width.toString() + "x" + scaleSetting.scale.height.toString()
+            });
+            this.config_resize_options.push({
+                key: "-filter:v:0",
+                value: `scale=${scaleSetting.scale.width.toString()}:${scaleSetting.scale.height.toString()} -b:v:0 1500k`,
+                resize_dir: scaleSetting.size + "p"
+            });
         }
     }
 }

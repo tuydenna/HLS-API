@@ -1,15 +1,6 @@
 import FfmpegLib from "@lib/ffmpeg/ffmpeg-lib";
-import {IPlaylist} from "@interfaces/stream";
-import SysLog from "@lib/logger/sys-log";
+import {IHSLResponse} from "@interfaces/stream";
 
-export default function fragmentMp4ToFMp4(inputFile: string, outputDir: string): IPlaylist {
-    try {
-        const outputs: IPlaylist = new FfmpegLib(inputFile)
-            .saveToHLSV2(outputDir);
-            SysLog.success("[fragmentMp4ToFMp4]:", "video encoding successfully");
-            return outputs;
-    } catch (e) {
-        SysLog.error("[fragmentMp4ToFMp4]:", e.code, e.message);
-        throw e
-    }
+export default async function fragmentMp4ToFMp4(inputFile: string, outputDir: string): Promise<IHSLResponse> {
+    return await new FfmpegLib(inputFile).saveToHLSV2(outputDir);
 }

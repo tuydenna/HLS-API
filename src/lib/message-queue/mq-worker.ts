@@ -1,11 +1,12 @@
-import amqplib, {Channel, ChannelModel, ConsumeMessage} from "amqplib"
+import amqplib, {Channel, ChannelModel, ConsumeMessage, Replies} from "amqplib"
 import {File, PostStatus} from "@prisma/client";
 import fragmentMp4ToFMp4 from "@lib/ffmpeg/ffmpeg-fragmentor";
 import dotenv from "dotenv";
 import {getStorageLink} from "@constant/path";
 import PostService from "@services/PostService";
-import {IPlaylist} from "@interfaces/stream";
+import {IHSLResponse} from "@interfaces/stream";
 import SysLog from "@lib/logger/sys-log";
+import AssertQueue = Replies.AssertQueue;
 
 dotenv.config();
 
@@ -15,7 +16,7 @@ async function MQWorker() {
     const connection: ChannelModel = await amqplib.connect(process.env.RABBITMQ_URL);
     const channel: Channel = await connection.createChannel();
     await channel.assertExchange(exchangeKey, "fanout", {durable: false});
-    const queue = await channel.assertQueue("", {exclusive: true});
+    const queue: AssertQueue = await channel.assertQueue("", {exclusive: true});
     await channel.bindQueue(queue.queue, exchangeKey, "")
 
     let count: number = 1;
@@ -23,16 +24,17 @@ async function MQWorker() {
     await channel.prefetch(1);
     await channel.consume(queue.queue, async (msg: ConsumeMessage) => {
         const file: File & {postId: string} = JSON.parse(msg.content.toString());
-        console.log("start fragmenting: ", count, file);
+        SysLog.success("[MQ Consumer]", "start fragmenting ", "num: " + count, "message:", file);
         try {
-            const playList: IPlaylist = fragmentMp4ToFMp4(getStorageLink(file.filePath), getStorageLink(file.dirPath));
-            await new PostService().updatePostFromQueue(file.postId, {status: PostStatus.PUBLISHED, duration: playList.duration});
-            console.log(`Finished fragmenting:`, file);
+            const {duration, quality}: IHSLResponse = await fragmentMp4ToFMp4(getStorageLink(file.filePath), getStorageLink(file.dirPath));
+            await new PostService().updatePostFromQueue(file.postId, {status: PostStatus.PUBLISHED, duration, quality});
             count++;
+            SysLog.success("[MQ Consumer]", `Finished fragmenting`, "message:", file, "duration: "+duration, "quality:", quality);
             channel.ack(msg);
         } catch (err) {
             await new PostService().updatePostFromQueue(file.postId, {status: PostStatus.ERROR});
-            console.error('Failed to fragment upload:', err);
+            SysLog.error("[MQ Consumer]", 'Failed to fragment upload', err);
+            channel.ack(msg);
         }
     },
         {
@@ -56,7 +58,7 @@ async function MQWorker() {
         console.error('[MQ Connection]', "is error", err);
     });
 
-    console.log('Worker listening for fragment upload jobs...');
+    SysLog.success("[MQ Worker]", "listening for fragment upload jobs...");
 }
 
 MQWorker();

@@ -3,7 +3,7 @@ import {Request, Response} from "express";
 import StorageEngine from "@services/StorageEngine";
 import {Prefix, Post, Res, Req} from "express-router-controller-khmer";
 import fs, {WriteStream} from "fs";
-import {avatar_path, storage_path, thumbnail_path, video_path} from "@constant/path";
+import {avatar_path, getFilePath, storage_path, thumbnail_path, video_path} from "@constant/path";
 import db from "@lib/prisma/db-connector";
 import ResBaseController from "@controllers/ResBaseController";
 import UserService from "@services/UserService";
@@ -15,7 +15,7 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/thumbnails")
 	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
-		const {src, fileName} = this.getFilePath(req, thumbnail_path);
+		const {src, fileName} = getFilePath(req, thumbnail_path);
 		try {
 			await this.writeStream(req, src);
 			return this.resSuccess(res, {filePath: fileName, size: Number(req.header("File-Size"))});
@@ -31,7 +31,7 @@ export default class FileManagerController extends ResBaseController{
 		const user: User = await new UserService().getOne(req["auth"].id);
 		const outputDir: string = video_path + user.userDir + "/" + crypto.randomUUID()
 		const fullOutputDir: string = storage_path + outputDir;
-		const {src, fileName} = this.getFilePath(req, outputDir, "original" );
+		const {src, fileName} = getFilePath(req, outputDir, "original" );
 
 		try {
 			if (!fs.existsSync(fullOutputDir)) {
@@ -61,7 +61,7 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/avatars")
 	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
-		const {src, fileName} = this.getFilePath(req, avatar_path);
+		const {src, fileName} = getFilePath(req, avatar_path);
 		try {
 			await this.writeStream(req, src);
 			console.log("uploading avatar");
@@ -72,12 +72,6 @@ export default class FileManagerController extends ResBaseController{
 			return this.resError(res, e);
 		}
 	}
-
-	private getFilePath(req: Request, folder: string, name: string = crypto.randomUUID()) {
-		const fileName = folder +"/"+ name +"."+ req.header("file-extension");
-		return  {src: storage_path + fileName, fileName};
-	}
-
 	private writeStream(req: Request, src: string): Promise<boolean> {
 
 		return new Promise((res, rej) => {
