@@ -30,6 +30,7 @@ model Post {
   description String
   thumbnail   String
   status      PostStatus @default(PENDING)
+  searchIndex Int @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

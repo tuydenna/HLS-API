@@ -61,6 +61,7 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/avatars")
 	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
+		console.log("avatars")
 		const {src, fileName} = getFilePath(req, avatar_path);
 		try {
 			await this.writeStream(req, src);

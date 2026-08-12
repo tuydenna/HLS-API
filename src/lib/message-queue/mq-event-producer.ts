@@ -1,0 +1,77 @@
+import mqlib, {Channel, ChannelModel} from "amqplib";
+import env from "dotenv";
+import SysLog from "@lib/logger/sys-log";
+import {getEnv} from "@utils/index";
+
+env.config();
+
+export const EXCHANGE_KEYS = {
+    'SEGMENT_UPLOAD': 'SEGMENT_UPLOAD',
+    'MIGRATE_STORAGE': 'MIGRATE_STORAGE',
+} as const;
+
+class MQEventProducer {
+    private static instance: MQEventProducer;
+    private mq: Channel | null = null;
+
+    private constructor() {}
+
+    public static getInstance(): MQEventProducer {
+        if (!MQEventProducer.instance) {
+            MQEventProducer.instance = new MQEventProducer();
+        }
+        console.log("getInstance", MQEventProducer.instance);
+        return MQEventProducer.instance;
+    }
+
+    public async connect() {
+        try {
+            const connection: ChannelModel = await mqlib.connect(getEnv("RABBITMQ_URL"));
+            this.mq = await connection.createChannel();
+            await this.mq.assertQueue(EXCHANGE_KEYS.SEGMENT_UPLOAD, {
+                durable: true,
+                arguments: {
+                    'x-queue-type': 'quorum'
+                }
+            });
+            await this.mq.assertQueue(EXCHANGE_KEYS.MIGRATE_STORAGE, {
+                durable: true,
+                arguments: {
+                    'x-queue-type': 'quorum'
+                }
+            });
+            SysLog.success("[MQ Service]", "is connected successfully.");
+        } catch (e) {
+            SysLog.error("[MQ Service]", "failed to connect MQ Service!");
+            throw new Error("failed to connect MQ Service!");
+        }
+    }
+
+    private publish(exchange: string, data: any) {
+        console.log("MQEventProducer", this.mq);
+        if (this.mq && this.mq.connection) {
+           SysLog.success("MQ Producer", exchange, data);
+            this.mq.sendToQueue(exchange, Buffer.from(JSON.stringify(data)), { persistent: true });
+        } else {
+            SysLog.error("[MQ Service]", "failed to connect MQ Service!");
+            throw new Error("failed to connect MQ Service!");
+        }
+    }
+
+    public sendMQSegmentUpload(data: any) {
+        this.publish(EXCHANGE_KEYS.SEGMENT_UPLOAD, data);
+    }
+
+    public sendMQMigrateS3Storage(data: any) {
+        console.log("sendMQMigrateS3Storage", this);
+        this.publish(EXCHANGE_KEYS.MIGRATE_STORAGE, data);
+    }
+
+    public getMQ(): Channel {
+        return this.mq;
+    }
+}
+
+const mqEventProducer: MQEventProducer = MQEventProducer.getInstance();
+
+export { mqEventProducer };

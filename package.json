@@ -3,13 +3,16 @@
     "version": "1.0.3",
     "license": "xaio-din",
     "scripts": {
-        "start": "node ./build/server.js",
-        "dev": "tsc && (concurrently \"npx tsc --watch\" \"tsc-alias -w\" \"nodemon -q ./build/server.js\")",
+        "start": "node -r ./tsconfig-paths.js ./build/src/server.js",
+        "swc": "swc src -d build",
+        "node:dev": "node --watch-path=./src --watch -r ./tsconfig-paths.js ./build/src/server.js",
+        "dev": "nodemon",
         "seed": "node ./build/database/seeders/user-seeder.js",
         "seed:post": "node ./build/database/seeders/post-seeder.js --loop=10000",
         "push": "npx prisma db push",
         "build": "tsc && tsc-alias",
-        "mq-worker": "del /s /q build && npm run build && node ./build/lib/message-queue/mq-worker.js"
+        "mq-worker": "del /s /q build && npm run build && node ./build/lib/message-queue/mq-worker.js",
+        "mq-worker1": "node -r ./tsconfig-paths.js ./build/src/lib/message-queue/mq-worker.js"
     },
     "dependencies": {
         "@faker-js/faker": "^8.4.1",
@@ -21,17 +24,20 @@
         "cors": "^2.8.5",
         "debug": "~2.6.9",
         "dotenv": "^16.4.5",
-        "express": "~4.16.1",
-        "express-router-controller-khmer": "^1.5.2",
+        "express": "5.0.0",
+        "express-router-controller-khmer": "^1.5.4",
         "google-protobuf": "^3.21.4",
         "http-errors": "~1.6.3",
         "ioredis": "^5.6.1",
         "jsonwebtoken": "^9.0.2",
         "morgan": "~1.9.1",
         "protoc-gen-js": "^3.21.2",
-        "rate-limiter-flexible": "^7.2.0"
+        "rate-limiter-flexible": "^7.2.0",
+        "tsconfig-paths": "^4.2.0"
     },
     "devDependencies": {
+        "@swc/cli": "^0.8.1",
+        "@swc/core": "^1.15.47",
         "@types/amqplib": "^0.10.7",
         "@types/compression": "^1.8.1",
         "@types/cookie-parser": "^1.4.6",

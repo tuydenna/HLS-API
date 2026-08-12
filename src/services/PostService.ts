@@ -1,12 +1,14 @@
 import db from "@lib/prisma/db-connector";
 import {LikePost, Post, PostStatus, Quality} from "@prisma/client";
 import {faker} from "@faker-js/faker";
-import {sendMQ} from "@lib/message-queue/mq-connector";
+import {mqEventProducer} from "@lib/message-queue/mq-event-producer";
 import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
 import storageEngine from "@services/StorageEngine";
 import {getStorageLink} from "@constant/path";
 import sysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
+import SysLog from "@lib/logger/sys-log";
+import AiModelClient from "@lib/ai-model/ai-model-client";
 
 export default class PostService {
 	async getAll(filter = undefined) {
@@ -49,17 +51,22 @@ export default class PostService {
 	async create(data: Post): Promise<Post> {
 		let post;
 		try {
-			 post = await db.post.create({
+			 const lastPost: Post | null = await db.post.findFirst({take: 1, orderBy: {createdAt: "desc"}});
+			 const post = await db.post.create({
 				data: {
 					...data,
+					searchIndex: lastPost? lastPost.searchIndex + 1 : 1,
 					slug: faker.lorem.slug()
 				},
 				include: {author: true, video: true}
 			});
-			sendMQ({...post.video, postId: post.id});
+			console.log("sendMQSegmentUpload", post);
+			await AiModelClient.trainModel(post)
+			mqEventProducer.sendMQSegmentUpload({...post.video, postId: post.id});
 			return post
 		} catch (error) {
 			// remove thumbnail
+			SysLog.error("create post", error);
 			await this.rollBackPost(post);
 			throw error;
 		}

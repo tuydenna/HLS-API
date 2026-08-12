@@ -6,7 +6,7 @@ import * as process from "process";
 import dotenv from "dotenv";
 import {AuthMiddleware} from "@config/middlewares/auth.middleware";
 import {coresMiddleware} from "@config/middlewares/cores.middleware";
-import {connectRabbitMQ} from "@lib/message-queue/mq-connector";
+import {mqEventProducer} from "@lib/message-queue/mq-event-producer";
 import RedisServer from "@lib/redis/redis-server";
 import ResponseInterceptor from "@config/pipeline/reponse/response.interceptor";
 import compression from "compression";
@@ -14,7 +14,7 @@ import morgan from "morgan";
 
 dotenv.config();
 
-(async function Server() {
+async function Server() {
     const app: Express = express();
     const port: number = Number(process.env.PORT || 3080);
     const router: Router = express.Router();
@@ -52,8 +52,10 @@ dotenv.config();
     });
 
     app.listen(port, async function (){
-        await connectRabbitMQ();
+        await mqEventProducer.connect();
         await new RedisServer().connect();
         console.log("server is running on port:" + "http://localhost:"+port);
     })
-})()
+}
+
+Server()
