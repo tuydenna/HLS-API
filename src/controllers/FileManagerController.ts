@@ -1,14 +1,18 @@
-import * as crypto from "crypto";
 import {Request, Response} from "express";
 import StorageEngine from "@services/StorageEngine";
-import {Prefix, Post, Res, Req} from "express-router-controller-khmer";
+import {Prefix, Post, Res, Req, Body} from "express-router-controller-khmer";
 import fs, {WriteStream} from "fs";
-import {avatar_path, getFilePath, storage_path, thumbnail_path, video_path} from "@constant/path";
+import {
+	avatar_path,
+	generateVideoDirPath,
+	getFilePath,
+	getStorageLink,
+	thumbnail_path,
+} from "@constant/path";
 import db from "@lib/prisma/db-connector";
 import ResBaseController from "@controllers/ResBaseController";
-import UserService from "@services/UserService";
-import {User} from "@prisma/client";
 import SysLog from "@lib/logger/sys-log";
+import FileService from "@services/FileService";
 
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
@@ -28,9 +32,9 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/videos")
 	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
-		const user: User = await new UserService().getOne(req["auth"].id);
-		const outputDir: string = video_path + user.userDir + "/" + crypto.randomUUID()
-		const fullOutputDir: string = storage_path + outputDir;
+		// const user: User = await new UserService().getOne(req["auth"].id);
+		const outputDir: string = generateVideoDirPath();
+		const fullOutputDir: string = getStorageLink(outputDir);
 		const {src, fileName} = getFilePath(req, outputDir, "original" );
 
 		try {
@@ -73,6 +77,12 @@ export default class FileManagerController extends ResBaseController{
 			return this.resError(res, e);
 		}
 	}
+
+	@Post("/migrate-storages")
+	async migrateStorage(@Body() {dirPath}: any): Promise<any> {
+		await new FileService().migrateVideoToR2(dirPath, dirPath);
+	}
+
 	private writeStream(req: Request, src: string): Promise<boolean> {
 
 		return new Promise((res, rej) => {

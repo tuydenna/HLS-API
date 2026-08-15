@@ -4,6 +4,7 @@
     "license": "xaio-din",
     "scripts": {
         "start": "node -r ./tsconfig-paths.js ./build/src/server.js",
+        "start1": "node ./build/server.js",
         "swc": "swc src -d build",
         "node:dev": "node --watch-path=./src --watch -r ./tsconfig-paths.js ./build/src/server.js",
         "dev": "nodemon",
@@ -12,9 +13,12 @@
         "push": "npx prisma db push",
         "build": "tsc && tsc-alias",
         "mq-worker": "del /s /q build && npm run build && node ./build/lib/message-queue/mq-worker.js",
-        "mq-worker1": "node -r ./tsconfig-paths.js ./build/src/lib/message-queue/mq-worker.js"
+        "mq-worker1": "npm run build && node ./build/lib/message-queue/mq-worker.js"
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.1108.0",
+        "@aws-sdk/lib-storage": "^3.1108.0",
+        "@aws-sdk/s3-request-presigner": "^3.1108.0",
         "@faker-js/faker": "^8.4.1",
         "@prisma/client": "^5.18.0",
         "amqplib": "^0.10.8",
@@ -47,12 +51,13 @@
         "@types/logger": "^0.0.5",
         "@types/morgan": "^1.9.10",
         "@types/multer": "^1.4.11",
-        "@types/node": "^22.1.0",
+        "@types/node": "^22.20.1",
         "concurrently": "^9.2.0",
         "nodemon": "^3.0.2",
         "prisma": "^5.18.0",
         "ts-node": "^10.9.2",
         "tsc-alias": "^1.8.16",
-        "typescript": "^5.5.4"
+        "tsx": "^4.23.12",
+        "typescript": "^5.9.3"
     }
 }

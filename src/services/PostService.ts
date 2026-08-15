@@ -1,5 +1,5 @@
 import db from "@lib/prisma/db-connector";
-import {LikePost, Post, PostStatus, Quality} from "@prisma/client";
+import {LikePost, Post, PostStatus, Quality, Prisma} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 import {mqEventProducer} from "@lib/message-queue/mq-event-producer";
 import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
@@ -9,8 +9,18 @@ import sysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
 import SysLog from "@lib/logger/sys-log";
 import AiModelClient from "@lib/ai-model/ai-model-client";
+import FileService from "@services/FileService";
+import {Inject, Injectable} from "express-router-controller-khmer";
+import {PostWithAuthorAndVideo} from "@interfaces/user-query";
 
+@Injectable()
 export default class PostService {
+	@Inject()
+	private readonly fileService: FileService;
+	constructor() {
+		this.fileService = new FileService();
+	}
+
 	async getAll(filter = undefined) {
 		return db.post.findMany({
 			where: filter,
@@ -52,7 +62,7 @@ export default class PostService {
 		let post;
 		try {
 			 const lastPost: Post | null = await db.post.findFirst({take: 1, orderBy: {createdAt: "desc"}});
-			 const post = await db.post.create({
+			 const post: PostWithAuthorAndVideo = await db.post.create({
 				data: {
 					...data,
 					searchIndex: lastPost? lastPost.searchIndex + 1 : 1,
@@ -72,11 +82,14 @@ export default class PostService {
 		}
 	}
 
-	async delete(id: string,): Promise<string> {
-		const post = await db.post.findFirst({
+	async delete(id: string): Promise<string> {
+		const post: PostWithAuthorAndVideo = await db.post.findFirst({
 			where: {id},
 			include: {author: true, video: true}
 		});
+		if (!post) {
+			throw new ErrorException("post not found", ErrorException.NOT_FOUND_CODE);
+		}
 		await this.rollBackPost(post);
 		return "Deleted Successfully"
 	}
@@ -85,7 +98,7 @@ export default class PostService {
 		return db.post.findMany({where: {id: {not: id}}, include: {author: true, video: true}});
 	}
 
-	private async rollBackPost(post) {
+	private async rollBackPost(post: PostWithAuthorAndVideo) {
 		try {
 			await db.comment.deleteMany({where: {postId: post.id}});
 			await db.likePost.deleteMany({where: {postId: post.id, userId: post.authorId}});
@@ -97,6 +110,7 @@ export default class PostService {
 			if (storageEngine.isExist(getStorageLink(post.video.dirPath))) {
 				storageEngine.remove(getStorageLink(post.video.dirPath), {recursive: true, force: true});
 			}
+			mqEventProducer.sendMQClearStorage(post.video);
 		} catch (e) {
 			sysLog.error("rollback post", e)
 			throw new Error("rollback post is error");

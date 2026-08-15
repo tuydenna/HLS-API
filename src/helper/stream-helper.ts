@@ -20,4 +20,8 @@ function formatMasterM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string): Bu
     return Buffer.from(txt);
 }
 
-export {formatPlaylistM3u8APIEndPoint, formatMasterM3u8APIEndPoint};
+function formatStorageFileKey(fileKey: string): string {
+    return fileKey ? fileKey.replace(/^\//, '') : "";
+}
+
+export {formatPlaylistM3u8APIEndPoint, formatMasterM3u8APIEndPoint, formatStorageFileKey};

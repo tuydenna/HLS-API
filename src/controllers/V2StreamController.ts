@@ -13,9 +13,11 @@ import {getEnv} from "@utils/index";
 import sysLog from "@lib/logger/sys-log";
 import SysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
+import {GetObjectAclCommandOutput, GetObjectCommandOutput} from "@aws-sdk/client-s3";
 
 @Prefix('/api/v2/streams/fmp4')
 export default class StreamController {
+	private fileService: FileService = new FileService();
 
 	@Get('/:fileId/playlist')
 	async getPlaylistFile(@Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
@@ -67,14 +69,18 @@ export default class StreamController {
 	async streamSegmentFile(@Param("segmentFile") segmentFile: string, @Req() req: Request, @Res() res: Response) {
 		let segmentChunk: ReadStream;
 		try {
-			const video: File | null = await new FileService().getOne(req.params.fileId);
+			const video: File | null = await this.fileService.getOne(req.params.fileId);
 			if (!video) {
-				throw Error("File not found!")
+				throw new  ErrorException("File not found!", ErrorException.NOT_FOUND_CODE);
 			}
 
-			const videoPath: string = getStorageLink(video.dirPath + "/" + req.query.scale + "/" + segmentFile) ;
-			const videoSize: number = fs.statSync(videoPath).size;
-			segmentChunk = fs.createReadStream(videoPath);
+			const fileKey: string = video.dirPath + "/" + req.query.scale + "/" + segmentFile;
+			// const videoPath: string = getStorageLink(fileKey) ;
+			const fileResponse: GetObjectCommandOutput = await this.fileService.downloadFile(fileKey);
+			// const videoPath: string = getStorageLink(video.dirPath + "/" + req.query.scale + "/" + segmentFile) ;
+			// segmentChunk = fs.createReadStream(videoPath);
+			const videoSize: number = fileResponse.ContentLength;
+			segmentChunk = fileResponse.Body as unknown as ReadStream;
 
 			if (!segmentFile){
 				return res.status(400).send("Segment File is required!")
@@ -87,12 +93,14 @@ export default class StreamController {
 				"Content-Type": "video/mp4",
 			}
 
-			// this.setCacheControl(res);
-			res.writeHead(200, headers);
-			segmentChunk.pipe(res);
+			if (!res.headersSent)  {
+				this.setCacheControl(res);
+				res.writeHead(200, headers);
+				segmentChunk.pipe(res);
+			}
 
-			req.on("aborted", function() {
-				sysLog.error("[Aborting segment]", segmentFile)
+			req.on("aborted", function(err) {
+				sysLog.error("[Aborting segment]", segmentFile, err)
 				segmentChunk.destroy()
 				res.end();
 			})
@@ -105,10 +113,15 @@ export default class StreamController {
 
 		} catch (e) {
 			SysLog.error("[streamSegmentFile]", e);
-			if (e.code === "ENOENT") {
+			if (res.headersSent) {
+				return;
+			}
+			if (e.code === "ENOENT" || e.code === ErrorException.NOT_FOUND_CODE) {
 				return res.status(ErrorException.END_STREAM_CODE).json({message: "Stream segment file is ended !"})
 			}
-			segmentChunk.destroy();
+			if (segmentChunk) {
+				segmentChunk.destroy();
+			}
 			return res.status(500).json({message: "error: "+e.message})
 		}
 	}

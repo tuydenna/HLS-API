@@ -7,14 +7,17 @@ import {File} from "@prisma/client"
 import {IPlaylist, ISegmentPlaylist} from "@interfaces/stream";
 import {formatPlaylistM3u8APIEndPoint} from "../helper/stream-helper";
 import {getEnv} from "@utils/index";
+import {GetObjectAclCommandOutput} from "@aws-sdk/client-s3";
 
 @Prefix('/api/streams/fmp4')
 export default class StreamController {
 
+	private fileService: FileService = new FileService();
+
 	@Get('/:fileId/playlist')
 	async getPlaylistFile(@Req() req: Request, @Res() res: Response) {
 		try {
-			const video: File | null = await new FileService().getOne(req.params.fileId);
+			const video: File | null = await this.fileService.getOne(req.params.fileId);
 			if (!video) {
 				throw Error("File not found!")
 			}
@@ -50,12 +53,13 @@ export default class StreamController {
 	async streamSegmentFile(@Param("segmentFile") segmentFile: string, @Req() req: Request, @Res() res: Response) {
 		let segmentChunk: ReadStream;
 		try {
-			const video: File | null = await new FileService().getOne(req.params.fileId);
+			const video: File | null = await this.fileService.getOne(req.params.fileId);
 			if (!video) {
 				throw Error("File not found!")
 			}
-
-			const videoPath: string = getStorageLink(video.dirPath + "/" + segmentFile) ;
+			const fileKey: string = video.dirPath + "/" + segmentFile;
+			const videoPath: string = getStorageLink(fileKey) ;
+			const file: GetObjectAclCommandOutput = await this.fileService.downloadFile(fileKey);
 			const videoSize: number = fs.statSync(videoPath).size;
 			segmentChunk = fs.createReadStream(videoPath);
 
@@ -74,13 +78,12 @@ export default class StreamController {
 			}
 
 			res.writeHead(206, headers)
-
 			segmentChunk.pipe(res, {end: true});
-
 			segmentChunk.on("end", () => {
 				segmentChunk.close();
 				res.end();
-			})
+			});
+
 		} catch (e) {
 			console.error(e);
 			if (e.code === "ENOENT") {

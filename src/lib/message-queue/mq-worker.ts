@@ -7,7 +7,9 @@ import PostService from "@services/PostService";
 import { IHSLResponse } from "@interfaces/stream";
 import SysLog from "@lib/logger/sys-log";
 import { getEnv } from "@utils/index";
-import {EXCHANGE_KEYS, mqEventProducer} from "@lib/message-queue/mq-event-producer";
+import {EXCHANGE_KEYS} from "@lib/message-queue/mq-event-producer";
+import FileService from "@services/FileService";
+import StorageEngine from "@services/StorageEngine";
 
 dotenv.config();
 
@@ -15,9 +17,11 @@ class DataProcessorWorker {
     private connection: ChannelModel | null = null;
     private channel: Channel | null = null;
     private postService: PostService;
+    private fileService: FileService;
 
     constructor() {
         this.postService = new PostService();
+        this.fileService = new FileService();
     }
 
     public async start(): Promise<void> {
@@ -32,7 +36,13 @@ class DataProcessorWorker {
     }
 
     private async connect(): Promise<void> {
-        this.connection = await amqplib.connect(getEnv("RABBITMQ_URL"));
+        this.connection = await amqplib.connect({
+            vhost: getEnv("RABBITMQ_USERNAME"),
+            hostname: getEnv("RABBITMQ_HOST"),
+            username: getEnv("RABBITMQ_USERNAME"),
+            password: getEnv("RABBITMQ_PASSWORD"),
+            port: +getEnv("RABBITMQ_PORT"),
+        });
         this.connection.on('close', () => this.handleDisconnect("[MQ Connection]"));
         this.connection.on('error', (err) => SysLog.error("[MQ Connection]", "Connection error", err));
 
@@ -58,14 +68,17 @@ class DataProcessorWorker {
                 'x-queue-type': 'quorum'
             }
         });
-
-        // await this.channel.assertExchange(EXCHANGE_NAME, "fanout", { durable: false });
-        // const { queue } = await this.channel.assertQueue("", { exclusive: true });
-        // await this.channel.bindQueue(queue, EXCHANGE_NAME, "");
+        await this.channel.assertQueue(EXCHANGE_KEYS.CLEAR_STORAGE, {
+            durable: true,
+            arguments: {
+                'x-queue-type': 'quorum'
+            }
+        });
 
         await this.channel.prefetch(2);
         await this.channel.consume(EXCHANGE_KEYS.SEGMENT_UPLOAD, (msg) => this.segmentUploadData(msg), { noAck: false });
         await this.channel.consume(EXCHANGE_KEYS.MIGRATE_STORAGE, (msg) => this.migrateSegmentDataToStorage(msg), { noAck: false });
+        await this.channel.consume(EXCHANGE_KEYS.CLEAR_STORAGE, (msg) => this.clearStorage(msg), { noAck: false });
     }
 
     private async segmentUploadData(msg: ConsumeMessage | null): Promise<void> {
@@ -74,7 +87,7 @@ class DataProcessorWorker {
         }
 
         const file: File & { postId: string } = JSON.parse(msg.content.toString());
-        SysLog.success("[MQ Consumer]", "Starting to process message:", file);
+        SysLog.success("MQ Worker", msg.fields.routingKey, file);
 
         try {
             const { duration, quality }: IHSLResponse = await fragmentMp4ToFMp4(
@@ -83,14 +96,13 @@ class DataProcessorWorker {
             );
 
             await this.postService.updatePostFromQueue(file.postId, {
-                status: PostStatus.PUBLISHED,
+                status: PostStatus.PENDING,
                 duration,
                 quality,
             });
 
-            SysLog.success("[MQ Consumer]", `Finished fragmenting`, "message:", file, "duration:", duration, "quality:", quality);
-            mqEventProducer.sendMQMigrateS3Storage(file);
-            // this.channel.sendToQueue(EXCHANGE_KEYS.MIGRATE_STORAGE, Buffer.from(JSON.stringify(file)), { persistent: true })
+            // SysLog.success("[MQ Consumer]", `Finished fragmenting`, "message:", file, "duration:", duration, "quality:", quality);
+            this.channel.sendToQueue(EXCHANGE_KEYS.MIGRATE_STORAGE, Buffer.from(JSON.stringify(file)), { persistent: true })
             this.channel.ack(msg);
         } catch (err) {
             SysLog.error("[MQ Consumer]", 'Failed to fragment upload', err, "for message:", file);
@@ -101,33 +113,40 @@ class DataProcessorWorker {
 
     private async migrateSegmentDataToStorage(msg: ConsumeMessage | null): Promise<void> {
         if (!msg || !this.channel) {
+            SysLog.error("Storage Worker", "msg is null");
             return;
         }
-
         const file: File & { postId: string } = JSON.parse(msg.content.toString());
+        try {
+            SysLog.success("MQ Worker", msg.fields.routingKey, file);
+            await this.fileService.migrateVideoToR2(file.dirPath, file.dirPath);
+            await this.postService.updatePostFromQueue(file.postId, {
+                status: PostStatus.PUBLISHED
+            });
 
-        console.log("migrateSegmentDataToStorage", file);
-        // SysLog.success("[MQ Consumer]", "Starting to process message:", file);
-        //
-        // try {
-        //     const { duration, quality }: IHSLResponse = await fragmentMp4ToFMp4(
-        //         getStorageLink(file.filePath),
-        //         getStorageLink(file.dirPath)
-        //     );
-        //
-        //     await this.postService.updatePostFromQueue(file.postId, {
-        //         status: PostStatus.PUBLISHED,
-        //         duration,
-        //         quality,
-        //     });
-        //
-        //     SysLog.success("[MQ Consumer]", `Finished fragmenting`, "message:", file, "duration:", duration, "quality:", quality);
-        //     this.channel.ack(msg);
-        // } catch (err) {
-        //     SysLog.error("[MQ Consumer]", 'Failed to fragment upload', err, "for message:", file);
-        //     await this.postService.updatePostFromQueue(file.postId, { status: PostStatus.ERROR });
-        //     this.channel.ack(msg); // Acknowledge even on failure to prevent requeueing loops for poison messages.
-        // }
+            StorageEngine.remove(file.dirPath);
+            this.channel.ack(msg);
+        } catch (e) {
+            SysLog.error("Storage Worker", e);
+            await this.postService.updatePostFromQueue(file.postId, { status: PostStatus.ERROR });
+            this.channel.ack(msg);
+        }
+    }
+
+    private async clearStorage(msg: ConsumeMessage | null): Promise<void> {
+        if (!msg || !this.channel) {
+            SysLog.error("Storage Worker", "msg is null");
+            return;
+        }
+        const file: File & { postId: string } = JSON.parse(msg.content.toString());
+        try {
+            SysLog.success("MQ Worker", msg.fields.routingKey, file);
+            await this.fileService.deleteDir(file.dirPath);
+            this.channel.ack(msg);
+        } catch (e) {
+            SysLog.error("Storage Worker", e);
+            this.channel.ack(msg);
+        }
     }
 
     private handleDisconnect(source: string): void {

@@ -48,7 +48,8 @@ async function Server() {
          logging: true,
          classTransform: false,
          controllerPath: [path.join(__dirname, "controllers/*.js")],
-         responseInterceptor: new ResponseInterceptor()
+         responseInterceptor: new ResponseInterceptor(),
+         // errorInterceptor: new ErrorInterceptor()
     });
 
     app.listen(port, async function (){

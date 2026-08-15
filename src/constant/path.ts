@@ -8,8 +8,12 @@ const video_path = "/videos";
 const avatar_path = "/avatars";
 const thumbnail_path = "/thumbnail";
 
-function getStorageLink (...path: string[]): string {
-    return `${storage_path}${path.join("")}`;
+function getStorageLink (...paths: string[]): string {
+    return path.join(storage_path, ...paths);
+}
+
+function generateVideoDirPath(): string {
+    return video_path + "/" + crypto.randomUUID();
 }
 
 function getFilePath(req: Request, folder: string, name: string = crypto.randomUUID()) {
@@ -17,4 +21,4 @@ function getFilePath(req: Request, folder: string, name: string = crypto.randomU
     return  {src: storage_path + fileName, fileName};
 }
 
-export {db_path, storage_path, video_path, thumbnail_path, avatar_path, getStorageLink, getFilePath};
+export {db_path, storage_path, video_path, thumbnail_path, avatar_path, getStorageLink, getFilePath, generateVideoDirPath};

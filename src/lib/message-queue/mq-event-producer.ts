@@ -2,12 +2,14 @@ import mqlib, {Channel, ChannelModel} from "amqplib";
 import env from "dotenv";
 import SysLog from "@lib/logger/sys-log";
 import {getEnv} from "@utils/index";
+import amqplib from "amqplib";
 
 env.config();
 
 export const EXCHANGE_KEYS = {
     'SEGMENT_UPLOAD': 'SEGMENT_UPLOAD',
     'MIGRATE_STORAGE': 'MIGRATE_STORAGE',
+    'CLEAR_STORAGE': 'CLEAR_STORAGE',
 } as const;
 
 class MQEventProducer {
@@ -20,13 +22,18 @@ class MQEventProducer {
         if (!MQEventProducer.instance) {
             MQEventProducer.instance = new MQEventProducer();
         }
-        console.log("getInstance", MQEventProducer.instance);
         return MQEventProducer.instance;
     }
 
     public async connect() {
         try {
-            const connection: ChannelModel = await mqlib.connect(getEnv("RABBITMQ_URL"));
+            const connection: ChannelModel = await mqlib.connect({
+                vhost: getEnv("RABBITMQ_USERNAME"),
+                hostname: getEnv("RABBITMQ_HOST"),
+                username: getEnv("RABBITMQ_USERNAME"),
+                password: getEnv("RABBITMQ_PASSWORD"),
+                port: +getEnv("RABBITMQ_PORT"),
+            });
             this.mq = await connection.createChannel();
             await this.mq.assertQueue(EXCHANGE_KEYS.SEGMENT_UPLOAD, {
                 durable: true,
@@ -40,6 +47,12 @@ class MQEventProducer {
                     'x-queue-type': 'quorum'
                 }
             });
+            await this.mq.assertQueue(EXCHANGE_KEYS.CLEAR_STORAGE, {
+                durable: true,
+                arguments: {
+                    'x-queue-type': 'quorum'
+                }
+            });
             SysLog.success("[MQ Service]", "is connected successfully.");
         } catch (e) {
             SysLog.error("[MQ Service]", "failed to connect MQ Service!");
@@ -48,7 +61,6 @@ class MQEventProducer {
     }
 
     private publish(exchange: string, data: any) {
-        console.log("MQEventProducer", this.mq);
         if (this.mq && this.mq.connection) {
            SysLog.success("MQ Producer", exchange, data);
             this.mq.sendToQueue(exchange, Buffer.from(JSON.stringify(data)), { persistent: true });
@@ -63,8 +75,11 @@ class MQEventProducer {
     }
 
     public sendMQMigrateS3Storage(data: any) {
-        console.log("sendMQMigrateS3Storage", this);
         this.publish(EXCHANGE_KEYS.MIGRATE_STORAGE, data);
+    }
+
+    public sendMQClearStorage(data: any) {
+        this.publish(EXCHANGE_KEYS.CLEAR_STORAGE, data);
     }
 
     public getMQ(): Channel {

@@ -5,10 +5,17 @@ import SysLog from "@lib/logger/sys-log";
 export default class RedisServer {
     static client: Redis;
     constructor() {
+        const host: string = getEnv("REDIS_HOST");
+        const port: number = +getEnv("REDIS_PORT") || 6379;
+        const user: string = getEnv("REDIS_USERNAME") || "default";
+        const password: string = getEnv("REDIS_PASSWORD");
+        // @ts-ignore
         RedisServer.client = new Redis({
-            host: getEnv("REDIS_HOST"),
-            port: +getEnv("REDIS_PORT"),
-            password: getEnv("REDIS_PASSWORD")
+            username: user,
+            host,
+            port,
+            password,
+            tls: host
         });
     }
 
