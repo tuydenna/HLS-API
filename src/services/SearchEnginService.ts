@@ -17,11 +17,12 @@ export default class SearchEnginService {
 
 	async searchPosts(filter: SearchPostFilterDto): Promise<Post[]> {
 		const searchText: string | undefined = filter.searchKey ? this.regexEscapeSpecialChars(filter.searchKey) : undefined
-		const {data} = await AiModelClient.search(searchText)
-		console.log(data, searchText, "searchText");
+		const vectorSearchModelResponse = await AiModelClient.search(searchText);
+		const vectorSearchIndexes: number[] = vectorSearchModelResponse.data;
+		console.log(vectorSearchIndexes, searchText, "searchText");
 
 		if (!searchText) {
-			return await db.post.findMany({
+			return db.post.findMany({
 				where: {
 					title: {contains: searchText, mode: "insensitive"},
 					status: PostStatus.PUBLISHED
@@ -33,18 +34,15 @@ export default class SearchEnginService {
 			});
 		}
 
-		const post_ai: Post[] = await db.post.findMany({
+		const posts: Post[] = await db.post.findMany({
 			where: {
-				searchIndex: {
-				in: data
-				}
+				searchIndex: { in: vectorSearchIndexes }
 			},
-			include: {author: true},
+			include: { author: true },
 			take: +filter.take,
 			skip: +filter.skip,
 		});
-		return data.map(id => post_ai.find(post=>post.searchIndex === id))
-
+		return vectorSearchIndexes.map(id => posts.find(post=> post.searchIndex === id))?.filter(Boolean);
 	}
 
 	private regexEscapeSpecialChars(str: string) {
