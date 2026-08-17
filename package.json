@@ -4,7 +4,8 @@
     "license": "xaio-din",
     "scripts": {
         "start": "node -r ./tsconfig-paths.js ./build/src/server.js",
-        "start1": "node ./build/server.js",
+        "start:api": "node ./build/server.js",
+        "start:production": "concurrently \"npm run mq-worker\" \"npm run start:api\"",
         "swc": "swc src -d build",
         "node:dev": "node --watch-path=./src --watch -r ./tsconfig-paths.js ./build/src/server.js",
         "dev": "nodemon",
@@ -12,8 +13,8 @@
         "seed:post": "node ./build/database/seeders/post-seeder.js --loop=10000",
         "push": "npx prisma db push",
         "build": "tsc && tsc-alias",
-        "mq-worker": "del /s /q build && npm run build && node ./build/lib/message-queue/mq-worker.js",
-        "mq-worker1": "npm run build && node ./build/lib/message-queue/mq-worker.js"
+        "mq-worker": "node ./build/lib/message-queue/mq-worker.js",
+        "mq-worker-build": "npm run build && node ./build/lib/message-queue/mq-worker.js"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1108.0",
