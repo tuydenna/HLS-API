@@ -19,8 +19,12 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/thumbnails")
 	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
+		if (!StorageEngine.isExist(getStorageLink(thumbnail_path))) {
+			StorageEngine.mkDir(getStorageLink(thumbnail_path));
+		}
 		const {src, fileName} = getFilePath(req, thumbnail_path);
 		try {
+			console.log(src, fileName);
 			await this.writeStream(req, src);
 			return this.resSuccess(res, {filePath: fileName, size: Number(req.header("File-Size"))});
 		} catch (e) {
@@ -65,7 +69,9 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/avatars")
 	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
-		console.log("avatars")
+		if (!StorageEngine.isExist(getStorageLink(avatar_path))) {
+			StorageEngine.mkDir(getStorageLink(avatar_path));
+		}
 		const {src, fileName} = getFilePath(req, avatar_path);
 		try {
 			await this.writeStream(req, src);
