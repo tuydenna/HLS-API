@@ -46,8 +46,8 @@ export default class AuthController extends ResBaseController {
     private setHeaderAuthCookie(res: Response, token: string): Response<any, Record<string, any>> {
         return res.cookie('auth_token', token, {
             httpOnly: true,
-            secure: false,        // Use 'true' in production (requires HTTPS)
-            sameSite: 'strict',  // Optional: helps prevent CSRF
+            secure: getEnv("NODE_ENV") === "production",        // Use 'true' in production (requires HTTPS)
+            sameSite: "none",  // Optional: helps prevent CSRF
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
     }
