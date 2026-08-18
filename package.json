@@ -12,7 +12,7 @@
         "seed": "node ./build/database/seeders/user-seeder.js",
         "seed:post": "node ./build/database/seeders/post-seeder.js --loop=10000",
         "push": "npx prisma db push",
-        "build": "tsc && tsc-alias",
+        "build": "npx tsc && npx tsc-alias",
         "mq-worker": "node ./build/lib/message-queue/mq-worker.js",
         "mq-worker-build": "npm run build && node ./build/lib/message-queue/mq-worker.js"
     },
