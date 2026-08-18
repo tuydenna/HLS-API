@@ -56,7 +56,10 @@ export default class AuthController extends ResBaseController {
         isLoggedIn: boolean,
         auth: User | null
     }> {
+        console.log("authorizeUser", data);
+        console.log("DB URL", getEnv("DATABASE_URL"));
         const auth: User = await this.userService.getOneByUsername(data.username);
+        console.log("authorizeUser", auth);
         if (!auth) {
             return {isLoggedIn: false, auth};
         }
