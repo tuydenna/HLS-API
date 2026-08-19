@@ -13,7 +13,7 @@ import {getEnv} from "@utils/index";
 import sysLog from "@lib/logger/sys-log";
 import SysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
-import {GetObjectAclCommandOutput, GetObjectCommandOutput} from "@aws-sdk/client-s3";
+import {GetObjectCommandOutput} from "@aws-sdk/client-s3";
 
 @Prefix('/api/v2/streams/fmp4')
 export default class StreamController {
@@ -26,10 +26,9 @@ export default class StreamController {
 			const playListFileName: string = scale ? "playlist.m3u8" : "master.m3u8";
 
 			if (!video) {
-				console.log("\"File not found!\"");
-				throw Error("File not found!")
+				throw new ErrorException("File not found!", ErrorException.NOT_FOUND_CODE);
 			}
-			const api: string = getEnv("STREAM_ENDPOINT_V2") + "/"+video.id+"/";
+			const api: string = getEnv("STREAM_API_ENDPOINT") + "/"+video.id+"/";
 
 			const playlistFile: string = (scale ? scale + "/" : "" ) + playListFileName;
 			const videoPath: string = getStorageLink(`${video.dirPath}/${playlistFile}`) ;
@@ -61,7 +60,7 @@ export default class StreamController {
 			if (e.code === "ENOENT") {
 				return res.status(404).json({message: "segment not found!"})
 			}
-			return res.status(500).json({message: "error: "+e.message})
+			return res.status(e.code || ErrorException.INTERNAL_SERVER).json({message: "error: "+e.message})
 		}
 	}
 
@@ -71,14 +70,14 @@ export default class StreamController {
 		try {
 			const video: File | null = await this.fileService.getOne(req.params.fileId);
 			if (!video) {
-				throw new  ErrorException("File not found!", ErrorException.NOT_FOUND_CODE);
+				throw new ErrorException("File not found!", ErrorException.NOT_FOUND_CODE);
 			}
 
 			const fileKey: string = video.dirPath + "/" + req.query.scale + "/" + segmentFile;
 			// const videoPath: string = getStorageLink(fileKey) ;
-			const fileResponse: GetObjectCommandOutput = await this.fileService.downloadFile(fileKey);
 			// const videoPath: string = getStorageLink(video.dirPath + "/" + req.query.scale + "/" + segmentFile) ;
 			// segmentChunk = fs.createReadStream(videoPath);
+			const fileResponse: GetObjectCommandOutput = await this.fileService.downloadFile(fileKey);
 			const videoSize: number = fileResponse.ContentLength;
 			segmentChunk = fileResponse.Body as unknown as ReadStream;
 
@@ -122,17 +121,17 @@ export default class StreamController {
 			if (segmentChunk) {
 				segmentChunk.destroy();
 			}
-			return res.status(500).json({message: "error: "+e.message})
+			return res.status(e.code || ErrorException.INTERNAL_SERVER).json({message: "error: "+e.message})
 		}
 	}
 
 	@Get('/seeks/:fileId/:currentTime')
 	async streamSeekingSegmentFile(@Param("fileId") fileId: string, @Param("currentTime") currentTimeP: string, @Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
 		try {
-			const video: File | null = await new FileService().getOne(fileId);
+			const video: File | null = await this.fileService.getOne(fileId);
 
 			if (!video) {
-				throw Error("File not found!")
+				throw new ErrorException("File not found!", ErrorException.NOT_FOUND_CODE);
 			}
 
 			const playlistPath: string = getStorageLink(video.dirPath, `/${scale}/playlist.json`);
@@ -149,7 +148,7 @@ export default class StreamController {
 			}
 
 			if (!playlist) {
-				throw Error("File not found!")
+				throw new ErrorException("Playlist File not found!", ErrorException.NOT_FOUND_CODE);
 			}
 
 			req.params.segmentFile = currentSegment.fileName;
@@ -158,7 +157,7 @@ export default class StreamController {
 			return this.streamSegmentFile(req.params.segmentFile, req, res)
 		} catch (e) {
 			console.error(e);
-			return res.status(500).json({message: "error: " + e.message})
+			return res.status(e.code || ErrorException.INTERNAL_SERVER).json({message: "error: " + e.message})
 		}
 	}
 

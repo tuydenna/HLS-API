@@ -17,6 +17,10 @@ import FileService from "@services/FileService";
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
 
+	constructor(private fileService: FileService) {
+		super();
+	}
+
 	@Post("/thumbnails")
 	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
 		if (!StorageEngine.isExist(getStorageLink(thumbnail_path))) {
@@ -86,7 +90,7 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/migrate-storages")
 	async migrateStorage(@Body() {dirPath}: any): Promise<any> {
-		await new FileService().migrateVideoToR2(dirPath, dirPath);
+		await this.fileService.migrateVideoToR2(dirPath, dirPath);
 	}
 
 	private writeStream(req: Request, src: string): Promise<boolean> {
