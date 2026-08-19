@@ -1,0 +1,9 @@
+.idea
+/node_modules
+/build
+/storages
+pm2.config.js
+*.txt
+
+#.env*
+#!.env.example

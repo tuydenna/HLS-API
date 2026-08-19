@@ -40,16 +40,15 @@ export default class FileManagerController extends ResBaseController{
 
 	@Post("/videos")
 	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
-		// const user: User = await new UserService().getOne(req["auth"].id);
 		const outputDir: string = generateVideoDirPath();
 		const fullOutputDir: string = getStorageLink(outputDir);
 		const {src, fileName} = getFilePath(req, outputDir, "original" );
 
 		try {
-			if (!fs.existsSync(fullOutputDir)) {
-				fs.mkdirSync(fullOutputDir, {recursive: true});
+			if (!StorageEngine.isExist(fullOutputDir)) {
+				StorageEngine.mkDir(fullOutputDir);
 				await this.writeStream(req, src);
-				const file = await db.file.create({
+				const file= await db.file.create({
 					data: {
 						dirPath: outputDir,
 						filePath: fileName,
@@ -60,7 +59,7 @@ export default class FileManagerController extends ResBaseController{
 			}
 		} catch (e) {
 			SysLog.error("[File Upload]", e);
-			if (fs.existsSync(fullOutputDir)) {
+			if (StorageEngine.isExist(fullOutputDir)) {
 				fs.rm(src, function (err) {
 					if (!err) {
 						fs.rmSync(fullOutputDir, {recursive: true, force: true});
