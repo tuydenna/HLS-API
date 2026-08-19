@@ -185,6 +185,7 @@ export default class PostService {
             });
         } catch (e) {
             sysLog.error("[updatePostFromQueue]", e);
+            return null;
         }
     }
 
