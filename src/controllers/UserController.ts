@@ -6,8 +6,9 @@ import ResBaseController from "@controllers/ResBaseController";
 import fs, {WriteStream} from "fs";
 import storageEngine from "@services/StorageEngine";
 import {avatar_path, getFilePath, getStorageLink} from "@constant/path";
-import {User} from "@prisma/client";
+import {Prisma, User} from "@prisma/client";
 import SysLog from "@lib/logger/sys-log";
+import bcrypt from "bcryptjs";
 
 @Prefix("/api/users")
 export default class UserController extends ResBaseController {
@@ -32,12 +33,17 @@ export default class UserController extends ResBaseController {
 	}
 
 	@Put('/:id')
-	async update(@Body() data, @Req() req: Request, @Res() res: Response) {
+	async update(@Body() data: {file: any, password: string}, @Req() req: Request, @Res() res: Response) {
 		try {
 			const userId: string = req.params.id;
+			const password: string | undefined = data.password ?? data.password.trim();
 			const user: User = await db.user.findFirst({
 				where: { id: userId }
 			});
+			const updateUserInput: Prisma.UserUpdateInput = {};
+			if (password) {
+				updateUserInput.password = bcrypt.hashSync(password, 10);
+			}
 
 			req.headers["file-extension"] = "png";
 
@@ -51,14 +57,12 @@ export default class UserController extends ResBaseController {
 					if (fs.existsSync(getStorageLink(user.avatar))) {
 						storageEngine.remove(getStorageLink(user.avatar));
 					}
-					await db.user.update({
-						where: {id: userId},
-						data: {avatar: fileName}
-					});
+					updateUserInput.avatar = fileName;
 					user.avatar = fileName;
 					resolve(user);
 				});
-			})
+			});
+			await this.service.update( {id: userId}, updateUserInput);
 			return this.resSuccess(res, updatedUser);
 		} catch (error) {
 			SysLog.error("[update users]", error);
