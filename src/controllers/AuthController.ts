@@ -44,6 +44,7 @@ export default class AuthController extends ResBaseController {
     }
 
     private setHeaderAuthCookie(res: Response, token: string): Response<any, Record<string, any>> {
+        console.log("setHeaderAuthCookie", token, getEnv("NODE_ENV") === "production");
         return res.cookie('auth_token', token, {
             httpOnly: true,
             secure: getEnv("NODE_ENV") === "production",        // Use 'true' in production (requires HTTPS)
