@@ -10,16 +10,17 @@ import storageEngine from "@services/StorageEngine";
 import {Quality} from "@prisma/client";
 import SysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
+import ffmpegPath from "ffmpeg-static";
 
 export default class FfmpegLib {
-    private commands: string[] = ["ffmpeg -i"];
+    private commands: string[] = [`${ffmpegPath} -i`];
     private input_file: string = "";
     private qualities: Quality[] = [];
     private video_duration: number = 0;
     private config_resize_options: Array<{ key: string, value: string, resize_dir: string }> = []
 
     constructor(inputFile: string) {
-        console.log("FfmpegLib", inputFile);
+        console.log("FfmpegLib", ffmpegPath, inputFile);
         this.commands.push(inputFile);
         this.input_file = inputFile;
     }
@@ -99,7 +100,7 @@ export default class FfmpegLib {
                     .addCommand("-crf", "23")
                 newFfmpeg.addCommand(configResizeOption.key, configResizeOption.value);
                 newFfmpeg.addCommand("-map", "v:0");
-                newFfmpeg.addCommand("-map", "0:a");
+                newFfmpeg.addCommand("-map", "0:a?");
                 newFfmpeg.addCommand("-var_stream_map", `\"v:0,a:0,name:${configResizeOption.resize_dir}\"`);
                 newFfmpeg.addCommand("-f", "hls");
                 newFfmpeg.addCommand("-master_pl_name", currentMasterM3u8File);

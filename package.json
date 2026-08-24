@@ -31,6 +31,7 @@
         "dotenv": "^16.4.5",
         "express": "5.0.0",
         "express-router-controller-khmer": "^1.5.4",
+        "ffmpeg-static": "^5.3.0",
         "google-protobuf": "^3.21.4",
         "http-errors": "~1.6.3",
         "ioredis": "^5.6.1",

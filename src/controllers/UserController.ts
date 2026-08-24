@@ -3,17 +3,17 @@ import db from "@lib/prisma/db-connector";
 import {Put, Get, Post, Prefix, Res, Req, Body} from "express-router-controller-khmer";
 import UserService from "@services/UserService";
 import ResBaseController from "@controllers/ResBaseController";
-import fs, {WriteStream} from "fs";
-import storageEngine from "@services/StorageEngine";
-import {avatar_path, getFilePath, getStorageLink} from "@constant/path";
+import {avatar_path, getFilePath} from "@constant/path";
 import {Prisma, User} from "@prisma/client";
 import SysLog from "@lib/logger/sys-log";
 import bcrypt from "bcryptjs";
+import FileService from "@services/FileService";
 
 @Prefix("/api/users")
 export default class UserController extends ResBaseController {
 
 	private readonly service: UserService = new UserService();
+	private readonly fileService: FileService = new FileService();
 
 	@Get('/')
 	//@AuthMiddleware()
@@ -45,23 +45,23 @@ export default class UserController extends ResBaseController {
 				updateUserInput.password = bcrypt.hashSync(password, 10);
 			}
 
-			req.headers["file-extension"] = "png";
+			const updatedUser: User = await new Promise(async (resolve, reject) => {
+				if (data.file) {
+					const {extension, rawBase64} = this.fileService.getFileBase64Info(data.file);
+					req.headers["file-extension"] = extension;
 
-			const {src, fileName} = getFilePath(req, avatar_path);
-			const updatedUser: User = await new Promise((resolve, reject) =>  {
-				const writeStream: WriteStream = fs.createWriteStream(src);
-				writeStream.write(Buffer.from(data.file.replace("data:image/png;base64,", ""), "base64"));
-				writeStream.end()
+					const {fileName} = getFilePath(req, avatar_path);
+					const imageStream: Buffer<ArrayBuffer> = Buffer.from(rawBase64, "base64");
 
-				writeStream.on("finish", async () => {
-					if (fs.existsSync(getStorageLink(user.avatar))) {
-						storageEngine.remove(getStorageLink(user.avatar));
-					}
+					await this.fileService.uploadFile(fileName, imageStream);
+					await this.fileService.removeFile(user.avatar);
+
 					updateUserInput.avatar = fileName;
 					user.avatar = fileName;
-					resolve(user);
-				});
+				}
+				resolve(user);
 			});
+
 			await this.service.update( {id: userId}, updateUserInput);
 			return this.resSuccess(res, updatedUser);
 		} catch (error) {
@@ -69,4 +69,5 @@ export default class UserController extends ResBaseController {
 			this.resError(res, error)
 		}
 	}
+
 }

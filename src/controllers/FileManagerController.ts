@@ -1,39 +1,43 @@
 import {Request, Response} from "express";
 import StorageEngine from "@services/StorageEngine";
-import {Prefix, Post, Res, Req, Body} from "express-router-controller-khmer";
+import {Prefix, Post, Res, Req} from "express-router-controller-khmer";
 import fs, {WriteStream} from "fs";
 import {
-	avatar_path,
 	generateVideoDirPath,
 	getFilePath,
 	getStorageLink,
-	thumbnail_path,
 } from "@constant/path";
 import db from "@lib/prisma/db-connector";
 import ResBaseController from "@controllers/ResBaseController";
 import SysLog from "@lib/logger/sys-log";
-import FileService from "@services/FileService";
+import FileManagerService from "@services/FileManagerService";
+import {FolderType} from "@interfaces/file.type";
 
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
 
-	constructor(private fileService: FileService) {
+	constructor(
+		private fileManagerService: FileManagerService
+		) {
 		super();
 	}
 
 	@Post("/thumbnails")
 	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
-		if (!StorageEngine.isExist(getStorageLink(thumbnail_path))) {
-			StorageEngine.mkDir(getStorageLink(thumbnail_path));
-		}
-		const {src, fileName} = getFilePath(req, thumbnail_path);
 		try {
-			console.log(src, fileName);
-			await this.writeStream(req, src);
-			return this.resSuccess(res, {filePath: fileName, size: Number(req.header("File-Size"))});
+			await this.fileManagerService.uploadReqStream(req, FolderType.Thumbnails);
 		} catch (e) {
 			SysLog.error("[File Upload]", e);
-			StorageEngine.remove(src);
+			return this.resError(res, e);
+		}
+	}
+
+	@Post("/avatars")
+	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
+		try {
+			await this.fileManagerService.uploadReqStream(req, FolderType.Avatars);
+		} catch (e) {
+			SysLog.error("[File Upload]", e);
 			return this.resError(res, e);
 		}
 	}
@@ -70,35 +74,9 @@ export default class FileManagerController extends ResBaseController{
 		}
 	}
 
-	@Post("/avatars")
-	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
-		if (!StorageEngine.isExist(getStorageLink(avatar_path))) {
-			StorageEngine.mkDir(getStorageLink(avatar_path));
-		}
-		const {src, fileName} = getFilePath(req, avatar_path);
-		try {
-			await this.writeStream(req, src);
-			console.log("uploading avatar");
-			return this.resSuccess(res, {filePath: fileName, size: Number(req.header("File-Size"))});
-		} catch (e) {
-			SysLog.error("[File Upload]", e);
-			StorageEngine.remove(src);
-			return this.resError(res, e);
-		}
-	}
-
-	@Post("/migrate-storages")
-	async migrateStorage(@Body() {dirPath}: any): Promise<any> {
-		await this.fileService.migrateVideoToR2(dirPath, dirPath);
-	}
-
 	private writeStream(req: Request, src: string): Promise<boolean> {
-
 		return new Promise((res, rej) => {
-			// req.on("data", function (chunk) {
-
-			// 	file.write(chunk);
-			// });
+			console.log( "writeStream", src);
 			const file: WriteStream= fs.createWriteStream(src);
 			req.pipe(file)
 
@@ -124,7 +102,6 @@ export default class FileManagerController extends ResBaseController{
 				res(true);
 			});
 		})
-
 	}
 };
 

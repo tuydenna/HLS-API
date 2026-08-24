@@ -1,10 +1,11 @@
 import db from "@lib/prisma/db-connector";
 import {
-	DeleteObjectsCommand,
-	GetObjectCommand,
-	GetObjectCommandOutput,
-	ListObjectsV2Command, ListObjectsV2CommandOutput, ObjectIdentifier,
-	S3Client
+    CompleteMultipartUploadCommandOutput, DeleteObjectCommand,
+    DeleteObjectsCommand,
+    GetObjectCommand,
+    GetObjectCommandOutput,
+    ListObjectsV2Command, ListObjectsV2CommandOutput, ObjectIdentifier, PutObjectCommand,
+    S3Client
 } from '@aws-sdk/client-s3';
 import {getEnv} from "@utils/index";
 import mime from 'mime-types';
@@ -18,6 +19,7 @@ import {ReadStream} from "node:fs";
 import {formatStorageFileKey} from "../helper/stream-helper";
 import SysLog from "@lib/logger/sys-log";
 import {Injectable} from "express-router-controller-khmer";
+import {Request} from "express";
 
 @Injectable()
 export default class FileService {
@@ -53,6 +55,71 @@ export default class FileService {
 
     async getAll(filter = undefined) {
         return db.file.findMany({where: filter});
+    }
+
+    async uploadFile(fileKey: string, file: Buffer<ArrayBuffer> | any): Promise<GetObjectCommandOutput> {
+        try {
+            const command = new PutObjectCommand({
+                Bucket: this.bucketName,
+                Key: formatStorageFileKey(fileKey),
+                Body: file,
+                ContentType: this.getFileContentType(fileKey),
+                CacheControl: this.getObjectCacheControl()
+            });
+
+            const response: GetObjectCommandOutput = await this.client.send(command);
+            console.log(response);
+            if (response.$metadata.httpStatusCode !== ErrorException.SUCCESS) {
+                throw new ErrorException("File upload error", ErrorException.BAD_REQUEST_CODE);
+            }
+            return response;
+        } catch (error) {
+            SysLog.error("File removal", error);
+            throw new ErrorException(error.message || "File removal error", error.code);
+        }
+    }
+
+    async removeFile(fileKey: string): Promise<GetObjectCommandOutput> {
+        try {
+            const command = new DeleteObjectCommand({
+                Bucket: this.bucketName,
+                Key: formatStorageFileKey(fileKey),
+            });
+
+            const response: GetObjectCommandOutput = await this.client.send(command);
+            console.log("removeFile", response);
+            if(![ErrorException.SUCCESS, 204].includes(response.$metadata.httpStatusCode)) {
+                throw new ErrorException("File removal error", ErrorException.BAD_REQUEST_CODE);
+            }
+            return response;
+        } catch (error) {
+            SysLog.error("File removal", error);
+            throw new ErrorException(error.message || "File removal error", error.code);
+        }
+    }
+
+    async uploadStream(fileKey: string, fileStream: Buffer<ArrayBuffer> | Request): Promise<GetObjectCommandOutput> {
+        try {
+            const upload = new Upload({
+                client: this.client,
+                params: {
+                    Bucket: this.bucketName,
+                    Key: formatStorageFileKey(fileKey),
+                    Body: fileStream,
+                    ContentType: this.getFileContentType(fileKey),
+                    CacheControl: this.getObjectCacheControl()
+                },
+            });
+
+            const response: CompleteMultipartUploadCommandOutput = await upload.done();
+            if (response.$metadata.httpStatusCode !== ErrorException.SUCCESS) {
+                throw new ErrorException("File upload error", ErrorException.BAD_REQUEST_CODE);
+            }
+            return response;
+        } catch (error) {
+            SysLog.error("File removal", error);
+            throw new ErrorException(error.message || "File removal error", error.code);
+        }
     }
 
     async downloadFile(fileKey: string): Promise<GetObjectCommandOutput> {
@@ -162,13 +229,11 @@ export default class FileService {
                     : normalizedPath;
 
                 const localFileStream: ReadStream = fs.createReadStream(filePath);
-                const contentType: string = this.getVideoContentType(filePath);
+                const contentType: string = this.getFileContentType(filePath);
 
                 // Disable caching on .m3u8 manifests during live streaming, allow long cache on segments
                 const isManifest: boolean = filePath.endsWith('.m3u8') || filePath.endsWith('.mpd');
-                const cacheControl = isManifest
-                    ? 'max-age=0, no-cache, no-store'
-                    : 'public, max-age=31536000, immutable';
+                const cacheControl: string = this.getObjectCacheControl(isManifest);
 
                 const upload = new Upload({
                     client: this.client,
@@ -203,7 +268,7 @@ export default class FileService {
     }
 
     // 2. Custom Video MIME Type Resolver
-    private getVideoContentType(filePath: string): string {
+    private getFileContentType(filePath: string): string {
         const ext: string = path.extname(filePath).toLowerCase();
         switch (ext) {
             case '.m3u8':
@@ -234,6 +299,40 @@ export default class FileService {
             }
         }
         return results;
+    }
+
+    private getObjectCacheControl(isManifest: boolean = false): string {
+        return isManifest
+            ? 'max-age=0, no-cache, no-store'
+            : 'public, max-age=31536000, immutable';
+    }
+
+    getFileBase64Info(base64: string) {
+        const regex = /^data:([^;]+);base64,/;
+        const match: RegExpMatchArray = base64.match(regex);
+        const mimeToExt: Record<string, string> = {
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/webp": "webp",
+            "image/gif": "gif",
+            "video/mp4": "mp4",
+            "audio/mpeg": "mp3",
+        };
+
+        if (match) {
+            const mimeType: string = match[1];
+            const extension: string = mimeToExt[mimeType];
+            return {
+                extension,
+                mimeType: mimeType,
+                rawBase64: base64.replace(regex, "")
+            };
+        }
+        return {
+            extension: "unknown",
+            mimeType: "unknown",
+            rawBase64: base64,
+        }
     }
 
 }
