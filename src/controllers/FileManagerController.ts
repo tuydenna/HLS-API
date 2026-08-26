@@ -25,7 +25,7 @@ export default class FileManagerController extends ResBaseController{
 	@Post("/thumbnails")
 	async uploadThumbnail(@Req() req: Request, @Res() res: Response): Promise<any> {
 		try {
-			await this.fileManagerService.uploadReqStream(req, FolderType.Thumbnails);
+			return await this.fileManagerService.uploadReqStream(req, FolderType.Thumbnails);
 		} catch (e) {
 			SysLog.error("[File Upload]", e);
 			return this.resError(res, e);
@@ -35,7 +35,7 @@ export default class FileManagerController extends ResBaseController{
 	@Post("/avatars")
 	async uploadAvatar(@Req() req: Request, @Res() res: Response): Promise<any> {
 		try {
-			await this.fileManagerService.uploadReqStream(req, FolderType.Avatars);
+			return await this.fileManagerService.uploadReqStream(req, FolderType.Avatars);
 		} catch (e) {
 			SysLog.error("[File Upload]", e);
 			return this.resError(res, e);

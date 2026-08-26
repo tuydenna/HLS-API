@@ -1,20 +1,25 @@
 import {Request} from "express";
-import {avatar_path, getFilePath, thumbnail_path, video_path} from "@constant/path";
+import {avatar_path, getFilePathInfo, thumbnail_path, video_path} from "@constant/path";
 import SysLog from "@lib/logger/sys-log";
 import FileService from "@services/FileService";
-import {FolderType} from "@interfaces/file.type";
+import {FileCompressionResult, FolderType} from "@interfaces/file.type";
 
 export default class FileManagerService {
-    constructor(private fileService: FileService) {}
+    private readonly fileService: FileService;
+    constructor(fileService: FileService) {
+        this.fileService = new FileService();
+    }
 
     async uploadReqStream(req: Request, folderType: FolderType): Promise<any> {
         const dir: string = this.getStorageDirectory(folderType);
-        const {fileName} = getFilePath(req, dir);
+        const {fileName} = getFilePathInfo(dir, "webp");
         try {
-            await this.fileService.uploadStream(fileName, req);
+            const [imageCompressed, size]: FileCompressionResult = await this.fileService.compressFile(req);
+            await this.fileService.uploadStream(fileName, imageCompressed);
+
             return {
                 filePath: fileName,
-                size: Number(req.header("File-Size"))
+                size
             };
         } catch (e) {
             SysLog.error("[File Upload]", e);

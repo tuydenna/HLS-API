@@ -21,4 +21,9 @@ function getFilePath(req: Request, folder: string, name: string = crypto.randomU
     return  {src: storage_path + fileName, fileName};
 }
 
-export {db_path, storage_path, video_path, thumbnail_path, avatar_path, getStorageLink, getFilePath, generateVideoDirPath};
+function getFilePathInfo(folder: string, extension: string = "webp", name: string = crypto.randomUUID()) {
+    const fileName:string = folder +"/"+ name +"."+ extension;
+    return  {src: storage_path + fileName, fileName};
+}
+
+export {db_path, storage_path, video_path, thumbnail_path, avatar_path, getStorageLink, getFilePath, generateVideoDirPath, getFilePathInfo};

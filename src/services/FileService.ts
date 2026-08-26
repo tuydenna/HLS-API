@@ -19,7 +19,9 @@ import {ReadStream} from "node:fs";
 import {formatStorageFileKey} from "../helper/stream-helper";
 import SysLog from "@lib/logger/sys-log";
 import {Injectable} from "express-router-controller-khmer";
-import {Request} from "express";
+import { Readable } from "node:stream";
+import sharp, {Sharp} from "sharp";
+import {FileCompressionResult, FileUploadInput} from "@interfaces/file.type";
 
 @Injectable()
 export default class FileService {
@@ -57,7 +59,7 @@ export default class FileService {
         return db.file.findMany({where: filter});
     }
 
-    async uploadFile(fileKey: string, file: Buffer<ArrayBuffer> | any): Promise<GetObjectCommandOutput> {
+    async uploadFile(fileKey: string, file: FileUploadInput): Promise<GetObjectCommandOutput> {
         try {
             const command = new PutObjectCommand({
                 Bucket: this.bucketName,
@@ -74,7 +76,7 @@ export default class FileService {
             }
             return response;
         } catch (error) {
-            SysLog.error("File removal", error);
+            SysLog.error("File upload", error);
             throw new ErrorException(error.message || "File removal error", error.code);
         }
     }
@@ -98,7 +100,7 @@ export default class FileService {
         }
     }
 
-    async uploadStream(fileKey: string, fileStream: Buffer<ArrayBuffer> | Request): Promise<GetObjectCommandOutput> {
+    async uploadStream(fileKey: string, fileStream: Buffer<ArrayBuffer> | Readable): Promise<GetObjectCommandOutput> {
         try {
             const upload = new Upload({
                 client: this.client,
@@ -335,4 +337,54 @@ export default class FileService {
         }
     }
 
+    async compressFile(file: Buffer<ArrayBuffer> | Readable): Promise<FileCompressionResult> {
+        try {
+            if (file instanceof Readable) {
+                let size: number = 0;
+                return await new Promise<FileCompressionResult>((resolve, reject) => {
+                    const compressed: Sharp = sharp()
+                        .resize({
+                            width: 1200,
+                            height: 1200,
+                            fit: "inside",
+                            withoutEnlargement: true,
+                        })
+                        .webp({
+                            quality: 80,
+                        })
+                    compressed.on("data", (chunk) => {
+                        if (chunk && chunk.length) {
+                            size += chunk.length;
+                        }
+                    });
+                    compressed.on("end", () => {
+                        resolve([compressed, size]);
+                    })
+                    compressed.on("error", error => {
+                        reject(error);
+                        SysLog.error("file compression", error);
+                    });
+                    file.pipe(compressed);
+                    SysLog.success("file compression", "success");
+                });
+            } else {
+                const compressed: Buffer<ArrayBuffer> = await sharp(file)
+                    .resize({
+                        width: 1200,
+                        height: 1200,
+                        fit: "inside",
+                        withoutEnlargement: true,
+                    })
+                    .webp({
+                        quality: 80,
+                    })
+                    .toBuffer();
+                SysLog.success("file compression", "success");
+                return [compressed, compressed.length];
+            }
+        } catch (error) {
+            SysLog.error("file compression", error);
+            throw new ErrorException("file compression", error.code || ErrorException.NOT_FOUND_CODE);
+        }
+    }
 }
