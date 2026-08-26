@@ -21,10 +21,21 @@ export default class AiModelClient {
     static async search(searchText: string): Promise<{status: string, data: number[]}> {
         try {
             const url: string = AiModelClient.baseAPI + "/search" + "?search_text=" + searchText;
-            return await fetch(url, {
+            const response = await fetch(url, {
                 headers: {"content-type": "application/json"},
                 method: "GET"
-            }).then(res => res.json());
+            });
+            if (!response.ok) {
+                SysLog.error("[Model API]", "failed to train model!");
+                throw new ErrorException("failed to train model!", response.status || ErrorException.INTERNAL_SERVER);
+            }
+            const resData: {status: string, data: number[]} = await response.json();
+            // Remove duplicate indexes
+            const vectorSearchIndexes: number[] = resData.data;
+            if (vectorSearchIndexes.length) {
+                resData.data = Array.from(new Set(vectorSearchIndexes).values());
+            }
+            return resData;
         } catch (e) {
             SysLog.error("[Model API]", "failed to train model!", e);
             throw new ErrorException("failed to train model!", e.code || ErrorException.INTERNAL_SERVER);
