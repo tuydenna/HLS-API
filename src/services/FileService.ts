@@ -8,7 +8,6 @@ import {
     S3Client
 } from '@aws-sdk/client-s3';
 import {getEnv} from "@utils/index";
-import mime from 'mime-types';
 import fs from "fs";
 import path from "path";
 import {Upload} from '@aws-sdk/lib-storage';
@@ -19,14 +18,14 @@ import {ReadStream} from "node:fs";
 import {formatStorageFileKey} from "../helper/stream-helper";
 import SysLog from "@lib/logger/sys-log";
 import {Injectable} from "express-router-controller-khmer";
-import { Readable } from "node:stream";
-import sharp, {Sharp} from "sharp";
-import {FileCompressionResult, FileUploadInput} from "@interfaces/file.type";
+import {FileUploadInput} from "@interfaces/file.type";
+import ImageTransformService from "@services/ImageTransformService";
 
 @Injectable()
 export default class FileService {
     readonly client: S3Client;
     private readonly bucketName: string;
+    private readonly imageTransformService: ImageTransformService;
 
     constructor() {
         const accountId: string = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -46,6 +45,7 @@ export default class FileService {
                 secretAccessKey,
             },
         });
+        this.imageTransformService = new ImageTransformService();
     }
 
     async getOne(id: string): Promise<File | null> {
@@ -65,7 +65,7 @@ export default class FileService {
                 Bucket: this.bucketName,
                 Key: formatStorageFileKey(fileKey),
                 Body: file,
-                ContentType: this.getFileContentType(fileKey),
+                ContentType: this.imageTransformService.getFileContentType(fileKey),
                 CacheControl: this.getObjectCacheControl()
             });
 
@@ -100,7 +100,7 @@ export default class FileService {
         }
     }
 
-    async uploadStream(fileKey: string, fileStream: Buffer<ArrayBuffer> | Readable): Promise<GetObjectCommandOutput> {
+    async uploadStream(fileKey: string, fileStream: FileUploadInput): Promise<GetObjectCommandOutput> {
         try {
             const upload = new Upload({
                 client: this.client,
@@ -108,7 +108,7 @@ export default class FileService {
                     Bucket: this.bucketName,
                     Key: formatStorageFileKey(fileKey),
                     Body: fileStream,
-                    ContentType: this.getFileContentType(fileKey),
+                    ContentType: this.imageTransformService.getFileContentType(fileKey),
                     CacheControl: this.getObjectCacheControl()
                 },
             });
@@ -231,7 +231,7 @@ export default class FileService {
                     : normalizedPath;
 
                 const localFileStream: ReadStream = fs.createReadStream(filePath);
-                const contentType: string = this.getFileContentType(filePath);
+                const contentType: string = this.imageTransformService.getFileContentType(filePath);
 
                 // Disable caching on .m3u8 manifests during live streaming, allow long cache on segments
                 const isManifest: boolean = filePath.endsWith('.m3u8') || filePath.endsWith('.mpd');
@@ -269,23 +269,6 @@ export default class FileService {
         console.log(`✅ Successfully migrated video folder to R2 at: ${r2VideoPrefix}`);
     }
 
-    // 2. Custom Video MIME Type Resolver
-    private getFileContentType(filePath: string): string {
-        const ext: string = path.extname(filePath).toLowerCase();
-        switch (ext) {
-            case '.m3u8':
-                return 'application/x-mpegURL';
-            case '.ts':
-                return 'video/MP2T';
-            case '.m4s':
-                return 'video/iso.segment';
-            case '.mpd':
-                return 'application/dash+xml';
-            default:
-                return mime.lookup(filePath) || 'application/octet-stream';
-        }
-    }
-
     // 3. Helper to recursively list files
     private async getFilesRecursively(dir: string): Promise<string[]> {
         let results: string[] = [];
@@ -309,82 +292,4 @@ export default class FileService {
             : 'public, max-age=31536000, immutable';
     }
 
-    getFileBase64Info(base64: string) {
-        const regex = /^data:([^;]+);base64,/;
-        const match: RegExpMatchArray = base64.match(regex);
-        const mimeToExt: Record<string, string> = {
-            "image/jpeg": "jpg",
-            "image/png": "png",
-            "image/webp": "webp",
-            "image/gif": "gif",
-            "video/mp4": "mp4",
-            "audio/mpeg": "mp3",
-        };
-
-        if (match) {
-            const mimeType: string = match[1];
-            const extension: string = mimeToExt[mimeType];
-            return {
-                extension,
-                mimeType: mimeType,
-                rawBase64: base64.replace(regex, "")
-            };
-        }
-        return {
-            extension: "unknown",
-            mimeType: "unknown",
-            rawBase64: base64,
-        }
-    }
-
-    async compressFile(file: Buffer<ArrayBuffer> | Readable): Promise<FileCompressionResult> {
-        try {
-            if (file instanceof Readable) {
-                let size: number = 0;
-                return await new Promise<FileCompressionResult>((resolve, reject) => {
-                    const compressed: Sharp = sharp()
-                        .resize({
-                            width: 1200,
-                            height: 1200,
-                            fit: "inside",
-                            withoutEnlargement: true,
-                        })
-                        .webp({
-                            quality: 80,
-                        })
-                    compressed.on("data", (chunk) => {
-                        if (chunk && chunk.length) {
-                            size += chunk.length;
-                        }
-                    });
-                    compressed.on("end", () => {
-                        resolve([compressed, size]);
-                    })
-                    compressed.on("error", error => {
-                        reject(error);
-                        SysLog.error("file compression", error);
-                    });
-                    file.pipe(compressed);
-                    SysLog.success("file compression", "success");
-                });
-            } else {
-                const compressed: Buffer<ArrayBuffer> = await sharp(file)
-                    .resize({
-                        width: 1200,
-                        height: 1200,
-                        fit: "inside",
-                        withoutEnlargement: true,
-                    })
-                    .webp({
-                        quality: 80,
-                    })
-                    .toBuffer();
-                SysLog.success("file compression", "success");
-                return [compressed, compressed.length];
-            }
-        } catch (error) {
-            SysLog.error("file compression", error);
-            throw new ErrorException("file compression", error.code || ErrorException.NOT_FOUND_CODE);
-        }
-    }
 }

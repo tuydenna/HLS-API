@@ -5,7 +5,9 @@ import jwt from "jsonwebtoken"
 import {getEnv} from "@utils/index";
 import { StringValue } from "ms";
 import {CHANNEL_FOLDER_PREFIX} from "@constant/file-storage";
+import {Injectable} from "express-router-controller-khmer";
 
+@Injectable()
 export default class UserService {
 	async getOne(id: string): Promise<User> {
 		return db.user.findFirstOrThrow({where: {id}});

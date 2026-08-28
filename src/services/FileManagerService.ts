@@ -3,18 +3,23 @@ import {avatar_path, getFilePathInfo, thumbnail_path, video_path} from "@constan
 import SysLog from "@lib/logger/sys-log";
 import FileService from "@services/FileService";
 import {FileCompressionResult, FolderType} from "@interfaces/file.type";
+import ImageTransformService from "@services/ImageTransformService";
+import {Inject} from "express-router-controller-khmer";
 
 export default class FileManagerService {
+    @Inject()
     private readonly fileService: FileService;
-    constructor(fileService: FileService) {
-        this.fileService = new FileService();
+    @Inject()
+    private readonly imageTransformService: ImageTransformService;
+
+    constructor() {
     }
 
     async uploadReqStream(req: Request, folderType: FolderType): Promise<any> {
         const dir: string = this.getStorageDirectory(folderType);
         const {fileName} = getFilePathInfo(dir, "webp");
         try {
-            const [imageCompressed, size]: FileCompressionResult = await this.fileService.compressFile(req);
+            const [imageCompressed, size]: FileCompressionResult = await this.imageTransformService.compressFile(req);
             await this.fileService.uploadStream(fileName, imageCompressed);
 
             return {
@@ -23,7 +28,6 @@ export default class FileManagerService {
             };
         } catch (e) {
             SysLog.error("[File Upload]", e);
-            // StorageEngine.remove(src);
             throw e;
         }
     }
