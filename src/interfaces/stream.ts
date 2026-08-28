@@ -13,6 +13,7 @@ interface IPlaylist {
 }
 
 interface IHSLResponse {
+    hasAudio: boolean;
     duration: number;
     quality: Quality[];
 }

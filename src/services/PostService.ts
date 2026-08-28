@@ -165,6 +165,7 @@ export default class PostService {
 
     async updatePostFromQueue(id: string, updateData: {
         status: PostStatus,
+        hasAudio: boolean,
         duration?: number,
         quality?: Quality[]
     }): Promise<Post> {
@@ -176,6 +177,7 @@ export default class PostService {
                     video: {
                         update: {
                             data: {
+                                hasAudio: updateData.hasAudio,
                                 duration: updateData.duration,
                                 quality: updateData.quality
                             }

@@ -11,6 +11,9 @@ import {Quality} from "@prisma/client";
 import SysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
 import ffmpegPath from "ffmpeg-static";
+import ffprobeStatic from "ffprobe-static";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 export default class FfmpegLib {
     private commands: string[] = [`${ffmpegPath} -i`];
@@ -78,6 +81,8 @@ export default class FfmpegLib {
 
     async saveToHLSV2(outputDir: string): Promise<IHSLResponse> {
         let writeMasterM3u8File: WriteStream | undefined;
+        const hasAudio: boolean = await this.hasAudioStream(this.input_file);
+
         try {
             this.setupVideoResolutionScaling();
             writeMasterM3u8File = fs.createWriteStream(storageEngine.joinPath(outputDir, "/master.m3u8"));
@@ -94,14 +99,24 @@ export default class FfmpegLib {
 
                 const newFfmpeg: FfmpegLib = new FfmpegLib(this.input_file)
                     .addVideoCodec("h264_nvenc")
-                    .addAudioCodec("aac")
-                    .addAudioBitRate("128k")
+                    // .addAudioCodec("aac")
+                    // .addAudioBitRate("128k")
                     // .addCommand("-preset", "veryfast")
-                    .addCommand("-crf", "23")
+                if (hasAudio) {
+                    newFfmpeg.addAudioCodec("aac")
+                    newFfmpeg.addAudioBitRate("128k")
+                }
+                // newFfmpeg.addCommand("-crf", "23")
                 newFfmpeg.addCommand(configResizeOption.key, configResizeOption.value);
                 newFfmpeg.addCommand("-map", "v:0");
-                newFfmpeg.addCommand("-map", "0:a?");
-                newFfmpeg.addCommand("-var_stream_map", `\"v:0,a:0,name:${configResizeOption.resize_dir}\"`);
+                if (hasAudio) {
+                    newFfmpeg.addCommand("-map", "0:a");
+                }
+                if (hasAudio) {
+                    newFfmpeg.addCommand("-var_stream_map", `\"v:0,a:0,name:${configResizeOption.resize_dir}\"`);
+                } else {
+                    newFfmpeg.addCommand("-var_stream_map", `\"v:0,name:${configResizeOption.resize_dir}\"`);
+                }
                 newFfmpeg.addCommand("-f", "hls");
                 newFfmpeg.addCommand("-master_pl_name", currentMasterM3u8File);
                 newFfmpeg.addCommand("-hls_time", "6");
@@ -127,7 +142,7 @@ export default class FfmpegLib {
             }
 
             writeMasterM3u8File.close();
-            return {duration: this.video_duration, quality: this.qualities};
+            return {duration: this.video_duration, quality: this.qualities, hasAudio};
         } catch (e) {
             this.rollBack(writeMasterM3u8File, outputDir);
             SysLog.error("[HSL Encoding]", e);
@@ -138,6 +153,7 @@ export default class FfmpegLib {
     private save() {
         try {
             const command: string = this.commands.join(" ");
+            console.log("command", command);
             execSync(command, {stdio: "inherit"});
             return "success";
         } catch (error) {
@@ -182,4 +198,28 @@ export default class FfmpegLib {
             });
         }
     }
+
+    private async hasAudioStream(inputFile: string): Promise<boolean> {
+        try {
+            const execFileAsync = promisify(execFile);
+            const { stdout } = await execFileAsync(
+                ffprobeStatic.path,
+                [
+                    "-v", "error",
+                    "-select_streams", "a",
+                    "-show_entries", "stream=index",
+                    "-of", "json",
+                    inputFile,
+                ]
+            );
+
+            const result = JSON.parse(stdout);
+
+            return result.streams?.length > 0;
+        } catch (e) {
+            SysLog.error("HSL Encoding", "check hasAudioStream", e);
+            throw new ErrorException(e.message || "Error check hasAudioStream", e.code || ErrorException.INTERNAL_SERVER);
+        }
+    }
+
 }

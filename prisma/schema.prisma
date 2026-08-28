@@ -20,19 +20,19 @@ enum PostStatus {
 }
 
 model Post {
-  id          String @id @default(auto()) @map("_id") @db.ObjectId
-  videoId     String @unique @db.ObjectId
-  authorId    String @db.ObjectId
-  slug        String @unique
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  videoId     String     @unique @db.ObjectId
+  authorId    String     @db.ObjectId
+  slug        String     @unique
   title       String
-  likes       Int    @default(0)
-  views       Int    @default(0)
+  likes       Int        @default(0)
+  views       Int        @default(0)
   description String
   thumbnail   String
   status      PostStatus @default(PENDING)
-  searchIndex Int @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  searchIndex Int        @default(1)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   author User @relation(fields: [authorId], references: [id])
   video  File @relation(fields: [videoId], references: [id])
@@ -51,13 +51,13 @@ model UserPost {
 }
 
 model User {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  name      String?
-  email     String     @unique
-  password  String
-  avatar    String?
-  token     String?
-  userDir  String
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String?
+  email       String   @unique
+  password    String
+  avatar      String?
+  token       String?
+  userDir     String
   accessToken String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -77,24 +77,25 @@ model LikePost {
 }
 
 model File {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  dirPath   String
-  filePath  String
-  size      Float
-  quality   Quality[]
-  duration  Float @default(0)
-  post      Post?
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  dirPath  String
+  filePath String
+  size     Float
+  hasAudio Boolean   @default(true)
+  quality  Quality[]
+  duration Float     @default(0)
+  post     Post?
 }
 
 model Comment {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  text    String
-  author  Author
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  author    Author
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  post    Post   @relation(fields: [postId], references: [id])
-  postId  String @db.ObjectId
+  post   Post   @relation(fields: [postId], references: [id])
+  postId String @db.ObjectId
 }
 
 // Address is an embedded document
@@ -104,16 +105,12 @@ type Video {
 }
 
 type Author {
-  id    String
-  name  String
+  id     String
+  name   String
   avatar String
 }
 
 type Quality {
-  name String
+  name  String
   scale String
 }
-
-
-
-

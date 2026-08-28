@@ -90,7 +90,7 @@ class DataProcessorWorker {
         SysLog.success("MQ Worker", msg.fields.routingKey, file);
 
         try {
-            const { duration, quality }: IHSLResponse = await fragmentMp4ToFMp4(
+            const { duration, quality, hasAudio }: IHSLResponse = await fragmentMp4ToFMp4(
                 getStorageLink(file.filePath),
                 getStorageLink(file.dirPath)
             );
@@ -98,6 +98,7 @@ class DataProcessorWorker {
             await this.postService.updatePostFromQueue(file.postId, {
                 status: PostStatus.PENDING,
                 duration,
+                hasAudio,
                 quality,
             });
 
