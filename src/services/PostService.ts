@@ -165,7 +165,7 @@ export default class PostService {
 
     async updatePostFromQueue(id: string, updateData: {
         status: PostStatus,
-        hasAudio: boolean,
+        hasAudio?: boolean,
         duration?: number,
         quality?: Quality[]
     }): Promise<Post> {
