@@ -269,6 +269,29 @@ export default class FileService {
         console.log(`✅ Successfully migrated video folder to R2 at: ${r2VideoPrefix}`);
     }
 
+    async migrateVideoToR2V2(
+        localVideoDir: string,
+        r2VideoPrefix: string,
+        concurrency = 20 // Higher concurrency for many small .ts/.m4s files
+    ): Promise<void> {
+        try {
+            const response = await fetch(getEnv("VIDEO_OPERATOR_API") + "/files/migrate", {
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                method: "POST",
+                body: JSON.stringify({inputDir: localVideoDir, outputDir: r2VideoPrefix}),
+            });
+            console.log(response.statusText);
+            if (!response.ok) throw new ErrorException("API segment", response.status);
+            return await response.json();
+        } catch (e) {
+            SysLog.error("API migrate", e);
+            throw e;
+        }
+}
+
     // 3. Helper to recursively list files
     private async getFilesRecursively(dir: string): Promise<string[]> {
         let results: string[] = [];

@@ -1,8 +1,7 @@
 import amqplib, {Channel, ChannelModel, ConsumeMessage} from "amqplib";
 import { File, PostStatus } from "@prisma/client";
-import fragmentMp4ToFMp4 from "@lib/ffmpeg/ffmpeg-fragmentor";
+import {fragmentMp4ToFMp4} from "@lib/ffmpeg/ffmpeg-fragmentor";
 import dotenv from "dotenv";
-import { getStorageLink } from "@constant/path";
 import PostService from "@services/PostService";
 import { IHSLResponse } from "@interfaces/stream";
 import SysLog from "@lib/logger/sys-log";
@@ -91,8 +90,8 @@ class DataProcessorWorker {
 
         try {
             const { duration, quality, hasAudio }: IHSLResponse = await fragmentMp4ToFMp4(
-                getStorageLink(file.filePath),
-                getStorageLink(file.dirPath)
+                file.filePath,
+                // getStorageLink(file.dirPath)
             );
 
             await this.postService.updatePostFromQueue(file.postId, {
@@ -120,7 +119,7 @@ class DataProcessorWorker {
         const file: File & { postId: string } = JSON.parse(msg.content.toString());
         try {
             SysLog.success("MQ Worker", msg.fields.routingKey, file);
-            await this.fileService.migrateVideoToR2(file.dirPath, file.dirPath);
+            await this.fileService.migrateVideoToR2V2(file.dirPath, file.dirPath);
             await this.postService.updatePostFromQueue(file.postId, {
                 status: PostStatus.PUBLISHED
             });
