@@ -94,6 +94,8 @@ class DataProcessorWorker {
                 // getStorageLink(file.dirPath)
             );
 
+            console.log("{ duration, quality, hasAudio }", { duration, quality, hasAudio })
+
             await this.postService.updatePostFromQueue(file.postId, {
                 status: PostStatus.PENDING,
                 duration,

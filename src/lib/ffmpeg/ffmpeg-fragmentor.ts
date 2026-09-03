@@ -21,7 +21,7 @@ export async function fragmentMp4ToFMp4(inputFile: string, outputDir?: string): 
         if (!response.ok) {
             throw new ErrorException("API segment", response.status);
         }
-        return await response.json();
+        return (await response.json()).data;
     } catch (e) {
         SysLog.error("API segment", e);
         throw e;
