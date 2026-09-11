@@ -12,8 +12,7 @@ export default class FileManagerService {
     @Inject()
     private readonly imageTransformService: ImageTransformService;
 
-    constructor() {
-    }
+    constructor() {}
 
     async uploadReqStream(req: Request, folderType: FolderType): Promise<any> {
         const dir: string = this.getStorageDirectory(folderType);
