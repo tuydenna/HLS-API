@@ -44,67 +44,67 @@ export default class FileManagerController extends ResBaseController{
 	}
 
 	@Post("/videos")
-	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
-		req.headers["file-extension"] = req.header("file-extension") || "mp4";
-		const outputDir: string = generateVideoDirPath();
-		const fullOutputDir: string = getStorageLink(outputDir);
-		const {src, fileName} = getFilePath(req, outputDir, "original");
-		const CHUNK_SIZE = 1 * 1024 * 1024;
-		let buffer = Buffer.alloc(0);
-		const chunkAPI: string = getEnv("VIDEO_OPERATOR_API") + "/files/upload/chunks";
+	async uploadVideoStreamV2(@Req() req: Request, @Res() res: Response): Promise<any> {
+		try {
+			req.headers["file-extension"] = req.header("file-extension") || "mp4";
+			const outputDir: string = generateVideoDirPath();
+			const {fileName} = getFilePath(req, outputDir, "original");
+			const CHUNK_SIZE: number = 2 * 1024 * 1024;
+			let buffer: Buffer<ArrayBuffer> = Buffer.alloc(0);
+			const chunkAPI: string = getEnv("VIDEO_OPERATOR_API") + "/files/upload/chunks";
 
-		console.log("fileName", fileName, CHUNK_SIZE);
+			console.log("fileName", fileName, CHUNK_SIZE);
 
-		for await (const chunk of req) {
-			buffer = Buffer.concat([buffer, chunk]);
-			console.log("chunk", buffer.length);
+			for await (const chunk of req) {
+				buffer = Buffer.concat([buffer, chunk]);
+				console.log("chunk", buffer.length);
 
-			if (buffer.length >= CHUNK_SIZE) {
-				const bufferChunk = buffer.subarray(0, CHUNK_SIZE);
-				buffer = buffer.subarray(CHUNK_SIZE);
+				if (buffer.length >= CHUNK_SIZE) {
+					const bufferChunk:  Buffer<ArrayBuffer> = buffer.subarray(0, CHUNK_SIZE);
+					buffer = buffer.subarray(CHUNK_SIZE);
 
-				console.log("meet size", buffer.length, CHUNK_SIZE);
+					console.log("Uploading:", bufferChunk.length / (1024 * 1024), "MB");
+					await fetch(chunkAPI, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/octet-stream",
+							"Content-Length": bufferChunk.length.toString(),
+							"File-Name": fileName,
+						},
+						body: bufferChunk,
+					}).then(res => res.json());
+				}
+			}
 
-				const res = await fetch(chunkAPI, {
+			if (buffer.length > 0) {
+				console.log(
+					"Remaining:",
+					buffer.length / (1024 * 1024),
+					"MB"
+				);
+				await fetch(chunkAPI, {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/octet-stream",
-						"Content-Length": bufferChunk.length.toString(),
+						"Content-Length": buffer.length.toString(),
 						"File-Name": fileName,
 					},
-					body: bufferChunk,
+					body: buffer,
 				}).then(res => res.json());
-
-				console.log("bufferChunk", res);
-
-				console.log(
-					"Uploading:",
-					bufferChunk.length / (1024 * 1024),
-					"MB"
-				);
 			}
+
+			return this.resSuccess(res, {message: "success"});
+		} catch (e) {
+			SysLog.error("File Upload", e.message || "chunking error");
+			return this.resError(res, e);
 		}
+	}
 
-		if (buffer.length > 0) {
-			console.log(
-				"Remaining:",
-				buffer.length / (1024 * 1024),
-				"MB"
-			);
-			const res = await fetch(chunkAPI, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/octet-stream",
-					"Content-Length": buffer.length.toString(),
-					"File-Name": fileName,
-				},
-				body: buffer,
-			}).then(res => res.json());
-		}
+	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
+		req.headers["file-extension"] = req.header("file-extension") || "mp4";
+		const outputDir: string = generateVideoDirPath();
+		const {fileName} = getFilePath(req, outputDir, "original");
 
-		res.json({message: "success"});
-
-		// try {
 		// 	if (!StorageEngine.isExist(fullOutputDir)) {
 		// 		StorageEngine.mkDir(fullOutputDir);
 		// 		await this.writeStream(req, src);
