@@ -1,5 +1,5 @@
 import db from "@lib/prisma/db-connector";
-import {LikePost, Post, PostStatus, Quality} from "@prisma/client";
+import {LikePost, Post, PostStatus, Quality, Prisma} from "@prisma/client";
 import {faker} from "@faker-js/faker";
 import {mqEventProducer} from "@lib/message-queue/mq-event-producer";
 import {redisExist, redisSetExpire} from "@lib/redis/redis-adapter";
@@ -64,13 +64,26 @@ export default class PostService {
 
         try {
             const lastPost: Post | null = await db.post.findFirst({take: 1, orderBy: {createdAt: "desc"}});
-            post = await db.post.create({
-                data: {
-                    ...data,
-                    searchIndex: lastPost ? lastPost.searchIndex + 1 : 1,
-                    slug: faker.lorem.slug()
+            const input: Prisma.PostCreateInput = {
+                title: data.title,
+                thumbnail: data.thumbnail,
+                description: data.description,
+                searchIndex: lastPost ? lastPost.searchIndex + 1 : 1,
+                slug: faker.lorem.slug(),
+                author: {
+                    connect: {
+                        id: data.authorId
+                    }
                 },
-                include: {author: true, video: true}
+                video: {
+                    connect: {
+                        id: data.videoId
+                    }
+                }
+            }
+            post = await db.post.create({
+                data: input,
+                include: {author: true, video: true},
             });
             console.log("sendMQSegmentUpload", post);
             await AiModelClient.trainModel(post);

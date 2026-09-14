@@ -4,7 +4,6 @@ import fs, {WriteStream} from "fs";
 import {
 	generateVideoDirPath,
 	getFilePath,
-	getStorageLink,
 } from "@constant/path";
 import ResBaseController from "@controllers/ResBaseController";
 import SysLog from "@lib/logger/sys-log";
@@ -13,6 +12,7 @@ import {FolderType} from "@interfaces/file.type";
 import {getEnv} from "@utils/index";
 import db from "@lib/prisma/db-connector";
 import ErrorException from "@config/error/error-exception";
+import {File} from "@prisma/client";
 
 @Prefix('/api/files')
 export default class FileManagerController extends ResBaseController{
@@ -93,7 +93,15 @@ export default class FileManagerController extends ResBaseController{
 				}).then(res => res.json());
 			}
 
-			return this.resSuccess(res, {message: "success"});
+			const file: File = await db.file.create({
+				data: {
+					dirPath: outputDir,
+					filePath: fileName,
+					size: Number(req.header("File-Size")),
+				}
+			})
+
+			return this.resSuccess(res, file);
 		} catch (e) {
 			SysLog.error("File Upload", e.message || "chunking error");
 			return this.resError(res, e);
