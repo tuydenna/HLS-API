@@ -22,26 +22,26 @@ export default class StreamController {
 	@Get('/:fileId/playlist')
 	async getPlaylistFile(@Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {
 		try {
-			const video: File | null = await new FileService().getOne(req.params.fileId);
+			const video: File | null = await this.fileService.getOne(req.params.fileId);
 			const playListFileName: string = scale ? "playlist.m3u8" : "master.m3u8";
 
 			if (!video) {
+
 				throw new ErrorException("File not found!", ErrorException.NOT_FOUND_CODE);
 			}
-			const api: string = getEnv("STREAM_API_ENDPOINT") + "/"+video.id+"/";
-
+			// const api: string = getEnv("STREAM_API_ENDPOINT") + "/"+video.id+"/";
+			const api: string = "/api/v2/streams/fmp4/" +video.id+ "/";
 			const playlistFile: string = (scale ? scale + "/" : "" ) + playListFileName;
-			const videoPath: string = getStorageLink(`${video.dirPath}/${playlistFile}`) ;
-			const videoSize: number = fs.statSync(videoPath).size;
-
-			console.log("STREAM_ENDPOINT_V2", videoPath);
-			SysLog.error("playListFileName", playListFileName, videoPath);
-
+			// const videoPath: string = getStorageLink(`${video.dirPath}/${playlistFile}`) ;
+			const videoPath: string = `${video.dirPath}/${playlistFile}` ;
 			if (!playlistFile){
+
 				return res.status(400).send("Segment File is required!")
 			}
 
-			let playlist: Buffer = fs.readFileSync(videoPath);
+			// let playlist: Buffer = fs.readFileSync(videoPath);
+			const playlistResponse: GetObjectCommandOutput = await this.fileService.downloadFile(videoPath);
+			let playlist: Buffer = Buffer.from(await playlistResponse.Body.transformToByteArray());
 
 			if (scale) {
 				playlist = formatPlaylistM3u8APIEndPoint(playlist, api, scale);
@@ -49,8 +49,13 @@ export default class StreamController {
 				playlist = formatMasterM3u8APIEndPoint(playlist, api + "playlist");
 			}
 
+			const videoSize: number = playlist.length;
 			res.setHeader("Content-Length", videoSize);
 			res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+			res.setHeader(
+				'Access-Control-Allow-Origin',
+				'*',
+			);
 			// this.setCacheControl(res)
 
 			res.send(playlist);
@@ -80,6 +85,8 @@ export default class StreamController {
 			const fileResponse: GetObjectCommandOutput = await this.fileService.downloadFile(fileKey);
 			const videoSize: number = fileResponse.ContentLength;
 			segmentChunk = fileResponse.Body as unknown as ReadStream;
+
+			console.log("fileKey", fileKey);
 
 			if (!segmentFile){
 				return res.status(400).send("Segment File is required!")

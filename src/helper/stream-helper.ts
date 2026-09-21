@@ -16,8 +16,10 @@ function formatPlaylistM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string, s
 function formatMasterM3u8APIEndPoint(txtBuffer: Buffer, apiEndPoint: string): Buffer {
     let txt: string = txtBuffer.toString();
     txt = txt.toString()
-    txt = txt.replace(/(.*p)\\playlist.m3u8/g, apiEndPoint + "?scale=$1")
+    txt = txt.replace(/\b(\d+p)\/playlist\.m3u8/g, apiEndPoint + "?scale=$1")
+    // txt = txt.replace(/(.*p)\\playlist.m3u8/g, apiEndPoint + "?scale=$1")
     return Buffer.from(txt);
+
 }
 
 function formatStorageFileKey(fileKey: string): string {

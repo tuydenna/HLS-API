@@ -7,7 +7,6 @@ import storageEngine from "@services/StorageEngine";
 import {getStorageLink} from "@constant/path";
 import sysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
-import SysLog from "@lib/logger/sys-log";
 import AiModelClient from "@lib/ai-model/ai-model-client";
 import FileService from "@services/FileService";
 import {Inject, Injectable} from "express-router-controller-khmer";
@@ -91,7 +90,7 @@ export default class PostService {
             return post
         } catch (error) {
             // remove all saving data and storages
-            SysLog.error("create post", error);
+            sysLog.error("create post", error);
             await this.rollBackPost(post);
             throw error;
         }

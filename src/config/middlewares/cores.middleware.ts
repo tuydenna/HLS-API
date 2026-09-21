@@ -5,6 +5,7 @@ import {getEnv} from "@utils/index";
 export function coresMiddleware() {
     return cores({
         origin: function (url: string, cb: Function) {
+            SysLog.success("cors middleware", url, cb);
             if (getEnv("NODE_ENV") !== "production" || !url) {
                 return cb(null, true);
             }
