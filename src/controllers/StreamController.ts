@@ -1,4 +1,4 @@
-import {Get, Param, Prefix, Query, Req, Res} from "express-router-controller-khmer";
+import {Get, Inject, Param, Prefix, Query, Req, Res} from "express-router-controller-khmer";
 import fs, {ReadStream} from "fs";
 import {getStorageLink} from "@constant/path";
 import {Request, Response} from "express"
@@ -9,7 +9,6 @@ import {
 	formatMasterM3u8APIEndPoint,
 	formatPlaylistM3u8APIEndPoint
 } from "../helper/stream-helper";
-import {getEnv} from "@utils/index";
 import sysLog from "@lib/logger/sys-log";
 import SysLog from "@lib/logger/sys-log";
 import ErrorException from "@config/error/error-exception";
@@ -17,7 +16,8 @@ import {GetObjectCommandOutput} from "@aws-sdk/client-s3";
 
 @Prefix('/api/v2/streams/fmp4')
 export default class StreamController {
-	private fileService: FileService = new FileService();
+	@Inject()
+	private fileService: FileService;
 
 	@Get('/:fileId/playlist')
 	async getPlaylistFile(@Query("scale") scale: string, @Req() req: Request, @Res() res: Response) {

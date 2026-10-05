@@ -121,7 +121,7 @@ class DataProcessorWorker {
         const file: File & { postId: string } = JSON.parse(msg.content.toString());
         try {
             SysLog.success("MQ Worker", msg.fields.routingKey, file);
-            await this.fileService.migrateVideoToR2V2(file.dirPath, file.dirPath);
+            await this.fileService.batchUpload(file.dirPath, file.dirPath);
             await this.postService.updatePostFromQueue(file.postId, {
                 status: PostStatus.PUBLISHED
             });

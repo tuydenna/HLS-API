@@ -44,71 +44,17 @@ export default class FileManagerController extends ResBaseController{
 	}
 
 	@Post("/videos")
-	async uploadVideoStreamV2(@Req() req: Request, @Res() res: Response): Promise<any> {
+	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
 		try {
-			req.headers["file-extension"] = req.header("file-extension") || "mp4";
-			const outputDir: string = generateVideoDirPath();
-			const {fileName} = getFilePath(req, outputDir, "original");
-			const CHUNK_SIZE: number = 2 * 1024 * 1024;
-			let buffer: Buffer<ArrayBuffer> = Buffer.alloc(0);
-			const chunkAPI: string = getEnv("VIDEO_OPERATOR_API") + "/files/upload/chunks";
-
-			console.log("fileName", fileName, CHUNK_SIZE);
-
-			for await (const chunk of req) {
-				buffer = Buffer.concat([buffer, chunk]);
-				console.log("chunk", buffer.length);
-
-				if (buffer.length >= CHUNK_SIZE) {
-					const bufferChunk:  Buffer<ArrayBuffer> = buffer.subarray(0, CHUNK_SIZE);
-					buffer = buffer.subarray(CHUNK_SIZE);
-
-					console.log("Uploading:", bufferChunk.length / (1024 * 1024), "MB");
-					await fetch(chunkAPI, {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/octet-stream",
-							"Content-Length": bufferChunk.length.toString(),
-							"File-Name": fileName,
-						},
-						body: bufferChunk,
-					}).then(res => res.json());
-				}
-			}
-
-			if (buffer.length > 0) {
-				console.log(
-					"Remaining:",
-					buffer.length / (1024 * 1024),
-					"MB"
-				);
-				await fetch(chunkAPI, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/octet-stream",
-						"Content-Length": buffer.length.toString(),
-						"File-Name": fileName,
-					},
-					body: buffer,
-				}).then(res => res.json());
-			}
-
-			const file: File = await db.file.create({
-				data: {
-					dirPath: outputDir,
-					filePath: fileName,
-					size: Number(req.header("File-Size")),
-				}
-			})
-
+			const file: File = await this.fileManagerService.uploadChunkReqStream(req);
 			return this.resSuccess(res, file);
 		} catch (e) {
-			SysLog.error("File Upload", e.message || "chunking error");
+			SysLog.error("[S3 Service]", e.message || "stream chunking failed");
 			return this.resError(res, e);
 		}
 	}
 
-	async uploadVideoStream(@Req() req: Request, @Res() res: Response): Promise<any> {
+	async uploadVideoStreamV1(@Req() req: Request, @Res() res: Response): Promise<any> {
 		req.headers["file-extension"] = req.header("file-extension") || "mp4";
 		const outputDir: string = generateVideoDirPath();
 		const {fileName} = getFilePath(req, outputDir, "original");

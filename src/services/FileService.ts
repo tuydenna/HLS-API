@@ -70,14 +70,14 @@ export default class FileService {
             });
 
             const response: GetObjectCommandOutput = await this.client.send(command);
-            console.log(response);
             if (response.$metadata.httpStatusCode !== ErrorException.SUCCESS) {
-                throw new ErrorException("File upload error", ErrorException.BAD_REQUEST_CODE);
+                throw new ErrorException("upload failed", ErrorException.BAD_REQUEST_CODE);
             }
             return response;
         } catch (error) {
-            SysLog.error("File upload", error);
-            throw new ErrorException(error.message || "File removal error", error.code);
+            const message: string = error.message || "upload failed";
+            SysLog.error("[S3 Service]", message);
+            throw new ErrorException(message, error.code);
         }
     }
 
@@ -89,14 +89,14 @@ export default class FileService {
             });
 
             const response: GetObjectCommandOutput = await this.client.send(command);
-            console.log("removeFile", response);
             if(![ErrorException.SUCCESS, 204].includes(response.$metadata.httpStatusCode)) {
-                throw new ErrorException("File removal error", ErrorException.BAD_REQUEST_CODE);
+                throw new ErrorException("removal failed", ErrorException.BAD_REQUEST_CODE);
             }
             return response;
         } catch (error) {
-            SysLog.error("File removal", error);
-            throw new ErrorException(error.message || "File removal error", error.code);
+            const message: string = error.message || "removal failed";
+            SysLog.error("[S3 Service]", message);
+            throw new ErrorException(message, error.code);
         }
     }
 
@@ -115,17 +115,16 @@ export default class FileService {
 
             const response: CompleteMultipartUploadCommandOutput = await upload.done();
             if (response.$metadata.httpStatusCode !== ErrorException.SUCCESS) {
-                throw new ErrorException("File upload error", ErrorException.BAD_REQUEST_CODE);
+                throw new ErrorException("stream failed!", ErrorException.BAD_REQUEST_CODE);
             }
             return response;
         } catch (error) {
-            SysLog.error("File removal", error);
-            throw new ErrorException(error.message || "File removal error", error.code);
+            const message: string = "[S3 Service][Upload]:" + (error.message || "stream failed!")
+            throw new ErrorException(message, error.code);
         }
     }
 
     async downloadFile(fileKey: string): Promise<GetObjectCommandOutput> {
-
         try {
             const command = new GetObjectCommand({
                 Bucket: this.bucketName,
@@ -140,10 +139,10 @@ export default class FileService {
             return response;
         } catch (error) {
             if (error.Code === "NoSuchKey") {
-                console.log("file not found");
+                console.warn("[S3 Service]:","file not found");
                 throw new ErrorException("File not found", ErrorException.NOT_FOUND_CODE);
             }
-            throw new ErrorException(error.Code);
+            throw new ErrorException("[S3 Service]:" + error.message || "retrieve failed!", error.Code);
         }
     }
 
@@ -203,7 +202,7 @@ export default class FileService {
 		}
 	}
 
-    async migrateVideoToR2(
+    async batchUploadV1(
         localVideoDir: string,
         r2VideoPrefix: string,
         concurrency = 20 // Higher concurrency for many small .ts/.m4s files
@@ -269,7 +268,7 @@ export default class FileService {
         console.log(`✅ Successfully migrated video folder to R2 at: ${r2VideoPrefix}`);
     }
 
-    async migrateVideoToR2V2(
+    async batchUpload(
         localVideoDir: string,
         r2VideoPrefix: string,
         concurrency = 20 // Higher concurrency for many small .ts/.m4s files
@@ -283,11 +282,10 @@ export default class FileService {
                 method: "POST",
                 body: JSON.stringify({inputDir: localVideoDir, outputDir: r2VideoPrefix}),
             });
-            console.log(response.statusText);
-            if (!response.ok) throw new ErrorException("API segment", response.status);
+            if (!response.ok) throw new ErrorException("[S3 Service]: batch upload failed", response.status);
             return await response.json();
         } catch (e) {
-            SysLog.error("API migrate", e);
+            SysLog.error("[S3 Service]", e.message || e);
             throw e;
         }
 }

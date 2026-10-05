@@ -11,11 +11,15 @@ import AiModelClient from "@lib/ai-model/ai-model-client";
 import FileService from "@services/FileService";
 import {Inject, Injectable} from "express-router-controller-khmer";
 import {PostWithAuthorAndVideo} from "@interfaces/user-query";
+import {CircuitBreaker, retry} from "@utils/index";
 
 @Injectable()
 export default class PostService {
     @Inject()
     private readonly fileService: FileService;
+
+    private readonly aiModelClientBreaker: CircuitBreaker = new CircuitBreaker();
+    private readonly mqEventBreaker: CircuitBreaker = new CircuitBreaker();
 
     constructor() {
         this.fileService = new FileService();
@@ -60,7 +64,6 @@ export default class PostService {
 
     async create(data: Post): Promise<Post> {
         let post: PostWithAuthorAndVideo | null;
-
         try {
             const lastPost: Post | null = await db.post.findFirst({take: 1, orderBy: {createdAt: "desc"}});
             const input: Prisma.PostCreateInput = {
@@ -84,13 +87,15 @@ export default class PostService {
                 data: input,
                 include: {author: true, video: true},
             });
-            console.log("sendMQSegmentUpload", post);
-            await AiModelClient.trainModel(post);
-            mqEventProducer.sendMQSegmentUpload({...post.video, postId: post.id});
+            await this.aiModelClientBreaker.call(() =>  retry(AiModelClient.trainModel.bind(AiModelClient), post));
+            await this.mqEventBreaker.call(() => retry(mqEventProducer.sendMQSegmentUpload.bind(mqEventProducer), {
+                ...post.video,
+                postId: post.id
+            })) ;
             return post
         } catch (error) {
             // remove all saving data and storages
-            sysLog.error("create post", error);
+            sysLog.error("[Post Service]", error.message || error);
             await this.rollBackPost(post);
             throw error;
         }

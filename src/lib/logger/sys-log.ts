@@ -3,6 +3,10 @@ class SysLog {
         console.log("\x1b[32m", label+":", "\x1b[0m", msg, ...others);
     }
 
+    warn(label: string, msg: any, ...others) {
+        console.log("\x1b[33m", label+":", "\x1b[0m", msg, ...others);
+    }
+
     error(label: string, msg: any, ...others) {
         console.log("\x1b[31m", label+":", "\x1b[0m", msg, ...others);
     }

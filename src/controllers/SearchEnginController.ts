@@ -1,7 +1,8 @@
-import {Prefix, Get, Param, Query} from "express-router-controller-khmer";
+import {Prefix, Get, Param, Query, Res} from "express-router-controller-khmer";
 import ResBaseController from "@controllers/ResBaseController";
 import SearchEnginService from "@services/SearchEnginService";
 import SearchPostFilterDto from "@config/pipeline/dto/search-post-filter.dto";
+import {Response} from "express";
 
 @Prefix('/api/searches')
 export default class SearchEnginController extends ResBaseController {
@@ -13,8 +14,12 @@ export default class SearchEnginController extends ResBaseController {
 	}
 
 	@Get("/posts")
-	async searchPosts(@Query() filter: SearchPostFilterDto): Promise<any> {
-		return this.searchEnginService.searchPosts(filter);
+	async searchPosts(@Query() filter: SearchPostFilterDto,  @Res() res: Response): Promise<any> {
+		try {
+			return this.resSuccess(res, await this.searchEnginService.searchPosts(filter));
+		} catch (e) {
+			return this.resError(res, e.message)
+		}
 	}
 };
 
